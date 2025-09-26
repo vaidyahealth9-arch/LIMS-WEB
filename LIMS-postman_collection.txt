@@ -1,0 +1,3768 @@
+{
+	"info": {
+		"_postman_id": "e3c6e7e5-469b-469a-92ab-f65293c54e23",
+		"name": "LIMS collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "48441851",
+		"_collection_link": "https://srinivaschakravarthy1996-912347.postman.co/workspace/Srinivas-Chakravarthy's-Workspa~31c9324d-47fa-4385-8bb3-d4766fe2bd73/collection/48441851-e3c6e7e5-469b-469a-92ab-f65293c54e23?action=share&source=collection_link&creator=48441851"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": []
+		},
+		{
+			"name": "Master Data",
+			"item": [
+				{
+					"name": "Units",
+					"item": [
+						{
+							"name": "Add sec",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"name\": \"sec\", \"ucumCode\": \"s\", \"description\": \"Seconds\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/units",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"units"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add mL",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"name\": \"mL\", \"ucumCode\": \"mL\", \"description\": \"Milliliters\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/units",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"units"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add mg/dl",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"name\": \"mg/dL\", \"ucumCode\": \"mg/dL\", \"description\": \"Milligrams per Deciliter\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/units",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"units"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add '-' (No unit)",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"name\": \"-\", \"ucumCode\": \"{no_unit}\", \"description\": \"No specific unit\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/units",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"units"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Specimen Types",
+					"item": [
+						{
+							"name": "Add Citrated Plasma",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"name\": \"Citrated Plasma (3.2% Sodium Citrate)\", \"snomedCode\": \"448981009\", \"description\": \"Blood plasma obtained using sodium citrate as an anticoagulant\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/specimen-types",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"specimen-types"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add 'Urine'",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\"name\": \"Urine\", \"snomedCode\": \"396490001\", \"description\": \"Urine sample\"}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/specimen-types",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"specimen-types"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Tests (Global Definitions)",
+					"item": [
+						{
+							"name": "Add 'Activated Partial Thromboplastin Time (APTT)'",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"testName\": \"Activated Partial Thromboplastin Time (APTT)\",\n    \"localCode\": \"HEM-APTT\",\n    \"loincCode\": \"3173-2\",\n    \"department\": \"Hematology/Coagulation\",\n    \"containerDescription\": \"Light Blue Top, 2.7 mL; 9:1 blood:citrate\",\n    \"method\": \"Photo-optical clot detection\",\n    \"measuringPrinciple\": \"Intrinsic & common pathway clotting time\",\n    \"turnAroundTimeText\": \"4 hours (routine)\",\n    \"reflexProfileText\": \"APTT mixing study (1:1) +/- incubated; Lupus anticoagulant panel; Anti‑Xa for heparin; Thrombin time; Fibrinogen; Factors VIII, IX, XI, XII; D‑dimer.\",\n    \"reportNotes\": \"Degree of prolongation of PTT/APTT alone is neither predictive of bleeding risk nor a diagnosis. Results must be clinically correlated. Heparin therapeutic range is not established for this assay; for heparin monitoring, Anti‑Xa is recommended. ESR/PCV correction not applicable to APTT. Test performed at 37°C.\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/tests",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"tests"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Add 'Complete Urine Analysis' (as a panel/grouping test)",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"testName\": \"Complete Urine Analysis\",\n    \"localCode\": \"URI-CUA\",\n    \"loincCode\": \"24357-6\",\n    \"department\": \"Clinical Chemistry\",\n    \"containerDescription\": \"Sterile Urine Container\",\n    \"method\": \"Manual/Automated Urinalysis\",\n    \"measuringPrinciple\": \"Physical, chemical, and microscopic examination of urine\",\n    \"turnAroundTimeText\": \"2-4 hours\",\n    \"reflexProfileText\": \"Microscopic examination if indicated.\",\n    \"reportNotes\": \"Urine analysis provides information about kidney function, urinary tract infections, and metabolic disorders.\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/tests",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"tests"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Test Analytes (Global Definitions)",
+					"item": [
+						{
+							"name": "APTT_PATIENT",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"APTT_PATIENT\", \"analyteName\": \"APTT, Patient value\", \"parentTestId\": {{APTT_TEST_ID}},\n    \"loincCode\": \"3173-2\", \"unitId\": {{UNIT_SEC_ID}}, \"resultType\": \"Numeric\", \"decimalPlaces\": 2,\n    \"biologicalRefInterval\": \"23.70 – 33.00\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "APTT_CONTROL",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"APTT_CONTROL\", \"analyteName\": \"APTT, Control value (lot mean)\", \"parentTestId\": {{APTT_TEST_ID}},\n    \"loincCode\": \"24694-1\", \"unitId\": {{UNIT_SEC_ID}}, \"resultType\": \"Numeric\", \"decimalPlaces\": 2,\n    \"biologicalRefInterval\": \"Lab control mean ± QC defined\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "APTT_RATIO",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"APTT_RATIO\", \"analyteName\": \"APTT Ratio (Patient/Control)\", \"parentTestId\": {{APTT_TEST_ID}},\n    \"loincCode\": \"34714-6\", \"unitId\": {{UNIT_NONE_ID}}, \"resultType\": \"Numeric\", \"decimalPlaces\": 2,\n    \"biologicalRefInterval\": \"≤ 1.20\", \"isDerived\": true, \"formula\": \"APTT_PATIENT / APTT_CONTROL\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Volume - Urine",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"URI-VOL\", \"analyteName\": \"Urine Volume\", \"parentTestId\": {{CUA_PANEL_TEST_ID}},\n    \"loincCode\": \"3167-4\", \"unitId\": {{UNIT_ML_ID}}, \"resultType\": \"Numeric\", \"decimalPlaces\": 0,\n    \"biologicalRefInterval\": null, \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Colour -Urine",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"URI-COL\", \"analyteName\": \"Urine Colour\", \"parentTestId\": {{CUA_PANEL_TEST_ID}},\n    \"loincCode\": \"20448-6\", \"unitId\": {{UNIT_NONE_ID}}, \"resultType\": \"Text\", \"decimalPlaces\": 0,\n    \"biologicalRefInterval\": \"Pale Yellow\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Appearance - Urine",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"URI-APP\", \"analyteName\": \"Urine Appearance\", \"parentTestId\": {{CUA_PANEL_TEST_ID}},\n    \"loincCode\": \"20447-8\", \"unitId\": {{UNIT_NONE_ID}}, \"resultType\": \"Text\", \"decimalPlaces\": 0,\n    \"biologicalRefInterval\": \"Clear\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Specific Gravity - Urine",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"URI-SG\", \"analyteName\": \"Urine Specific Gravity\", \"parentTestId\": {{CUA_PANEL_TEST_ID}},\n    \"loincCode\": \"3168-2\", \"unitId\": {{UNIT_NONE_ID}}, \"resultType\": \"Numeric\", \"decimalPlaces\": 3,\n    \"biologicalRefInterval\": \"1.003 - 1.030\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "pH - Urine",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"URI-PH\", \"analyteName\": \"Urine pH\", \"parentTestId\": {{CUA_PANEL_TEST_ID}},\n    \"loincCode\": \"24361-8\", \"unitId\": {{UNIT_NONE_ID}}, \"resultType\": \"Numeric\", \"decimalPlaces\": 1,\n    \"biologicalRefInterval\": \"4.5 - 8.0\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urinary Protein",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"URI-PROT\", \"analyteName\": \"Urinary Protein\", \"parentTestId\": {{CUA_PANEL_TEST_ID}},\n    \"loincCode\": \"20456-9\", \"unitId\": {{UNIT_MGDL_ID}}, \"resultType\": \"Text\", \"decimalPlaces\": 0,\n    \"biologicalRefInterval\": \"Absent\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urinary Glucose",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"URI-GLUC\", \"analyteName\": \"Urinary Glucose\", \"parentTestId\": {{CUA_PANEL_TEST_ID}},\n    \"loincCode\": \"20455-1\", \"unitId\": {{UNIT_MGDL_ID}}, \"resultType\": \"Text\", \"decimalPlaces\": 0,\n    \"biologicalRefInterval\": \"Absent\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Ketone",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"URI-KETO\", \"analyteName\": \"Urine Ketone\", \"parentTestId\": {{CUA_PANEL_TEST_ID}},\n    \"loincCode\": \"20459-3\", \"unitId\": {{UNIT_MGDL_ID}}, \"resultType\": \"Text\", \"decimalPlaces\": 0,\n    \"biologicalRefInterval\": \"Absent\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Bilirubin",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"URI-BILI\", \"analyteName\": \"Urine Bilirubin\", \"parentTestId\": {{CUA_PANEL_TEST_ID}},\n    \"loincCode\": \"20452-8\", \"unitId\": {{UNIT_MGDL_ID}}, \"resultType\": \"Text\", \"decimalPlaces\": 0,\n    \"biologicalRefInterval\": \"Absent\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Urobilinogen",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteCode\": \"URI-URO\", \"analyteName\": \"Urine Urobilinogen\", \"parentTestId\": {{CUA_PANEL_TEST_ID}},\n    \"loincCode\": \"20464-3\", \"unitId\": {{UNIT_MGDL_ID}}, \"resultType\": \"Text\", \"decimalPlaces\": 0,\n    \"biologicalRefInterval\": \"Normal\", \"isDerived\": false\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-analytes",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-analytes"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Reference Ranges",
+					"item": [
+						{
+							"name": "APTT Adult Range",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteId\": {{APTT_PATIENT_ANALYTE_ID}},\n    \"gender\": null, \"minAgeYears\": 18, \"maxAgeYears\": null,\n    \"lowValue\": 23.70, \"highValue\": 33.00,\n    \"textRange\": \"Adults: 23.70 – 33.00 sec\", \"interpretationCode\": \"N\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/reference-ranges",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"reference-ranges"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Protein Range (Absent)",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteId\": {{URI_PROT_ANALYTE_ID}}, \"gender\": null, \"minAgeYears\": null, \"maxAgeYears\": null,\n    \"textRange\": \"Absent\", \"interpretationCode\": \"N\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/reference-ranges",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"reference-ranges"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Glucose Range (Absent)",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteId\": {{URI_GLUC_ANALYTE_ID}}, \"gender\": null, \"minAgeYears\": null, \"maxAgeYears\": null,\n    \"textRange\": \"Absent\", \"interpretationCode\": \"N\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/reference-ranges",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"reference-ranges"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Urobilinogen Range (Normal)",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteId\": {{URI_URO_ANALYTE_ID}}, \"gender\": null, \"minAgeYears\": null, \"maxAgeYears\": null,\n    \"textRange\": \"Normal\", \"interpretationCode\": \"N\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/reference-ranges",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"reference-ranges"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Bilirubin Range (Absent)",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteId\": {{URI_BILI_ANALYTE_ID}}, \"gender\": null, \"minAgeYears\": null, \"maxAgeYears\": null,\n    \"textRange\": \"Absent\", \"interpretationCode\": \"N\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/reference-ranges",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"reference-ranges"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Ketone Range (Absent)",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"analyteId\": {{URI_KETO_ANALYTE_ID}}, \"gender\": null, \"minAgeYears\": null, \"maxAgeYears\": null,\n    \"textRange\": \"Absent\", \"interpretationCode\": \"N\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/reference-ranges",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"reference-ranges"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				},
+				{
+					"name": "Test Interpretation Rules",
+					"item": [
+						{
+							"name": "APTT Normal Rule",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ruleId\": \"APTT-NORMAL\", \"analyteId\": {{APTT_PATIENT_ANALYTE_ID}},\n    \"conditionExpression\": \"APTT_PATIENT >= 23.70 and APTT_PATIENT <= 33.00 and APTT_RATIO <= 1.20\",\n    \"classification\": \"Normal\", \"autoComment\": \"APTT within laboratory reference range.\",\n    \"reflexActionText\": null, \"priority\": \"Info\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-interpretation-rules",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-interpretation-rules"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "APTT Critical Rule",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ruleId\": \"APTT-CRITICAL\", \"analyteId\": {{APTT_PATIENT_ANALYTE_ID}},\n    \"conditionExpression\": \"APTT_PATIENT >= 120\",\n    \"classification\": \"Critical value\", \"autoComment\": \"APTT ≥ 120 sec. Notify clinician immediately per critical callback policy.\",\n    \"reflexActionText\": \"Critical alert to provider; expedite inhibitor/LA workup and heparin assessment.\", \"priority\": \"Critical\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-interpretation-rules",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-interpretation-rules"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Protein Absent Rule",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ruleId\": \"URI-PROT-ABSENT\", \"analyteId\": {{URI_PROT_ANALYTE_ID}},\n    \"conditionExpression\": \"URI_PROT == \\\"Absent\\\"\",\n    \"classification\": \"Normal\", \"autoComment\": \"Urinary Protein: Absent\",\n    \"reflexActionText\": null, \"priority\": \"Info\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-interpretation-rules",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-interpretation-rules"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Glucose Absent Rule",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ruleId\": \"URI-GLUC-ABSENT\", \"analyteId\": {{URI_GLUC_ANALYTE_ID}},\n    \"conditionExpression\": \"URI_GLUC == \\\"Absent\\\"\",\n    \"classification\": \"Normal\", \"autoComment\": \"Urinary Glucose: Absent\",\n    \"reflexActionText\": null, \"priority\": \"Info\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-interpretation-rules",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-interpretation-rules"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Urobilinogen Normal Rule",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ruleId\": \"URI-URO-NORMAL\", \"analyteId\": {{URI_URO_ANALYTE_ID}},\n    \"conditionExpression\": \"URI_URO == \\\"Normal\\\"\",\n    \"classification\": \"Normal\", \"autoComment\": \"Urine Urobilinogen: Normal\",\n    \"reflexActionText\": null, \"priority\": \"Info\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-interpretation-rules",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-interpretation-rules"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Bilirubin Absent Rule",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ruleId\": \"URI-BILI-ABSENT\", \"analyteId\": {{URI_BILI_ANALYTE_ID}},\n    \"conditionExpression\": \"URI_BILI == \\\"Absent\\\"\",\n    \"classification\": \"Normal\", \"autoComment\": \"Urine Bilirubin: Absent\",\n    \"reflexActionText\": null, \"priority\": \"Info\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-interpretation-rules",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-interpretation-rules"
+									]
+								}
+							},
+							"response": []
+						},
+						{
+							"name": "Urine Ketone Absent Rule",
+							"request": {
+								"auth": {
+									"type": "basic",
+									"basic": [
+										{
+											"key": "username",
+											"value": "admin",
+											"type": "string"
+										},
+										{
+											"key": "password",
+											"value": "adminpass",
+											"type": "string"
+										}
+									]
+								},
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"ruleId\": \"URI-KETO-ABSENT\", \"analyteId\": {{URI_KETO_ANALYTE_ID}},\n    \"conditionExpression\": \"URI_KETO == \\\"Absent\\\"\",\n    \"classification\": \"Normal\", \"autoComment\": \"Urine Ketone: Absent\",\n    \"reflexActionText\": null, \"priority\": \"Info\"\n}",
+									"options": {
+										"raw": {
+											"language": "json"
+										}
+									}
+								},
+								"url": {
+									"raw": "{{baseUrl}}/api/test-interpretation-rules",
+									"host": [
+										"{{baseUrl}}"
+									],
+									"path": [
+										"api",
+										"test-interpretation-rules"
+									]
+								}
+							},
+							"response": []
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Organizations (Labs)",
+			"item": [
+				{
+					"name": "Add 'Lab A (Hyderabad)'",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "adminpass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organizationName\": \"Diagnostic Lab A (Hyderabad)\",\n    \"orgType\": \"laboratory\",\n    \"contactPhone\": \"9123456789\",\n    \"contactEmail\": \"labA@lims.com\",\n    \"addressLine1\": \"101 High Street\",\n    \"city\": \"Hyderabad\",\n    \"state\": \"Telangana\",\n    \"postalCode\": \"500001\",\n    \"country\": \"IND\",\n    \"localIdentifierValue\": \"LAB-HYD-001\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/organizations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"organizations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add 'Lab B (Bangalore)'",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "adminpass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"organizationName\": \"Diagnostic Lab B (Bangalore)\",\n    \"orgType\": \"laboratory\",\n    \"contactPhone\": \"8765432109\",\n    \"contactEmail\": \"labB@lims.com\",\n    \"addressLine1\": \"202 Tech Park Road\",\n    \"city\": \"Bangalore\",\n    \"state\": \"Karnataka\",\n    \"postalCode\": \"560001\",\n    \"country\": \"IND\",\n    \"localIdentifierValue\": \"LAB-BLR-001\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/organizations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"organizations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Organizations",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "adminpass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/organizations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"organizations"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Users (Practitioners)",
+			"item": [
+				{
+					"name": "Add Technician for Lab A",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "adminpass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"practitionerFirstName\": \"Anjali\", \"practitionerLastName\": \"Devi\", \"practitionerGender\": \"female\", \"practitionerDateOfBirth\": \"1992-03-20\",\n    \"username\": \"tech.labA\", \"password\": \"techpassword123\", \"roles\": [\"TECHNICIAN\"], \"organizationId\": {{LAB_A_ORG_ID}}, \"isActive\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Add Pathologist for Lab B",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "adminpass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"practitionerFirstName\": \"Dr. Sameer\", \"practitionerLastName\": \"Rao\", \"practitionerGender\": \"male\", \"practitionerDateOfBirth\": \"1980-08-01\",\n    \"username\": \"path.labB\", \"password\": \"pathpassword123\", \"roles\": [\"PATHOLOGIST\", \"DOCTOR\"], \"organizationId\": {{LAB_B_ORG_ID}}, \"isActive\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Users",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "adminpass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"users"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Lab-Specific Test Catalogs",
+			"item": [
+				{
+					"name": "Lab A - Enable APTT (with price)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "adminpass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"testId\": {{APTT_TEST_ID}}, \"isEnabled\": true, \"price\": 450.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/organizations/{{LAB_A_ORG_ID}}/tests",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"organizations",
+								"{{LAB_A_ORG_ID}}",
+								"tests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Lab A - Enable Complete Urine Analysis (with price)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "adminpass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"testId\": {{CUA_PANEL_TEST_ID}}, \"isEnabled\": true, \"price\": 300.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/organizations/{{LAB_A_ORG_ID}}/tests",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"organizations",
+								"{{LAB_A_ORG_ID}}",
+								"tests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Lab B - Enable Complete Urine Analysis (with price)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "adminpass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"testId\": {{CUA_PANEL_TEST_ID}}, \"isEnabled\": true, \"price\": 320.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/organizations/{{LAB_B_ORG_ID}}/tests",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"organizations",
+								"{{LAB_B_ORG_ID}}",
+								"tests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Lab A - Get Enabled Tests (using tech.labA credentials)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/organizations/{{LAB_A_ORG_ID}}/tests/enabled",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"organizations",
+								"{{LAB_A_ORG_ID}}",
+								"tests",
+								"enabled"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Patients",
+			"item": [
+				{
+					"name": "Register Patient for Lab A (Pooja Sharma)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\": \"Pooja\", \"lastName\": \"Sharma\", \"gender\": \"female\", \"dateOfBirth\": \"1995-03-22\",\n    \"contactPhone\": \"9876543210\", \"contactEmail\": \"pooja.sharma@email.com\",\n    \"addressLine1\": \"123 Main St\", \"city\": \"Hyderabad\", \"state\": \"Telangana\", \"postalCode\": \"500001\",\n    \"organizationId\": {{LAB_A_ORG_ID}},\n    \"abhaLinkMobileNumber\": \"9876543210\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/patients/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Verify ABHA for Pooja (simulate ABDM OTP confirmation)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"txnId\": \"some-dummy-txn-id-from-prev-response\",\n    \"otp\": \"123456\",\n    \"authMethod\": \"MOBILE_OTP\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/patients/{{POOJA_PATIENT_ID}}/abha/verify-otp",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"{{POOJA_PATIENT_ID}}",
+								"abha",
+								"verify-otp"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Register Patient for Lab B (Rahul Kumar)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "path.labB",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "pathpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"firstName\": \"Rahul\", \"lastName\": \"Kumar\", \"gender\": \"male\", \"dateOfBirth\": \"1988-11-05\",\n    \"contactPhone\": \"9988776655\", \"contactEmail\": \"rahul.kumar@email.com\",\n    \"addressLine1\": \"456 Side Ave\", \"city\": \"Bangalore\", \"state\": \"Karnataka\", \"postalCode\": \"560001\",\n    \"organizationId\": {{LAB_B_ORG_ID}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/patients/register",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Patients for Lab A",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/patients/by-organization/{{LAB_A_ORG_ID}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"patients",
+								"by-organization",
+								"{{LAB_A_ORG_ID}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Encounters & Service Requests",
+			"item": [
+				{
+					"name": "Create Encounter for Pooja",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"patientId\": {{POOJA_PATIENT_ID}},\n    \"startTime\": \"2025-09-15T09:00:00+05:30\",\n    \"status\": \"arrived\",\n    \"encounterClass\": \"AMB\",\n    \"serviceProviderId\": {{LAB_A_ORG_ID}}\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/encounters",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"encounters"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Service Request (APTT + Urine) for Pooja",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"patientId\": {{POOJA_PATIENT_ID}},\n    \"requesterId\": {{TECH_LAB_A_PRAC_ID}},\n    \"encounterId\": {{POOJA_ENCOUNTER_ID}},\n    \"status\": \"active\",\n    \"priority\": \"routine\",\n    \"testIds\": [{{APTT_TEST_ID}}, {{CUA_PANEL_TEST_ID}}]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/service-requests",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"service-requests"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Specimen (Citrated Plasma) for Pooja",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"patientId\": {{POOJA_PATIENT_ID}},\n    \"specimenTypeId\": {{SPECIMEN_PLASMA_ID}},\n    \"collectionDate\": \"2025-09-15T09:15:00+05:30\",\n    \"receivedDate\": \"2025-09-15T09:30:00+05:30\",\n    \"status\": \"collected\",\n    \"containerId\": \"DV259850\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/specimens",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"specimens"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Specimen (Urine) for Pooja",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"patientId\": {{POOJA_PATIENT_ID}},\n    \"specimenTypeId\": {{SPECIMEN_URINE_ID}},\n    \"collectionDate\": \"2025-09-15T09:15:00+05:30\",\n    \"receivedDate\": \"2025-09-15T09:30:00+05:30\",\n    \"status\": \"collected\",\n    \"containerId\": \"DV469444\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/specimens",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"specimens"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Encounter By ID",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/encounters/{{POOJA_ENCOUNTER_ID}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"encounters",
+								"{{POOJA_ENCOUNTER_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Encounter Status",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"finished\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/encounters/{{POOJA_ENCOUNTER_ID}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"encounters",
+								"{{POOJA_ENCOUNTER_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Service Request by ID",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/service-requests/{{POOJA_SERVICEREQUEST_ID}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"service-requests",
+								"{{POOJA_SERVICEREQUEST_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Service Request Status",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"on-hold\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/service-requests/{{POOJA_SERVICEREQUEST_ID}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"service-requests",
+								"{{POOJA_SERVICEREQUEST_ID}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Observations (Test Results)",
+			"item": [
+				{
+					"name": "Technician Lab A - Add APTT Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_PLASMA_SPECIMEN_ID}},\n    \"analyteId\": {{APTT_PATIENT_ANALYTE_ID}},\n    \"valueNumeric\": 28.50,\n    \"effectiveDateTime\": \"2025-09-15T10:30:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Add Urine Volume Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_URINE_SPECIMEN_ID}},\n    \"analyteId\": {{URI_VOL_ANALYTE_ID}},\n    \"valueNumeric\": 3,\n    \"effectiveDateTime\": \"2025-09-15T10:45:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Add Urine Colour Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_URINE_SPECIMEN_ID}},\n    \"analyteId\": {{URI_COL_ANALYTE_ID}},\n    \"valueString\": \"PALE YELLOW\",\n    \"effectiveDateTime\": \"2025-09-15T10:45:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Add Urine Appearance Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_URINE_SPECIMEN_ID}},\n    \"analyteId\": {{URI_APP_ANALYTE_ID}},\n    \"valueString\": \"CLEAR\",\n    \"effectiveDateTime\": \"2025-09-15T10:45:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Add Urine Specific Gravity Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_URINE_SPECIMEN_ID}},\n    \"analyteId\": {{URI_SG_ANALYTE_ID}},\n    \"valueNumeric\": 1.003,\n    \"effectiveDateTime\": \"2025-09-15T10:45:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Add Urine pH Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_URINE_SPECIMEN_ID}},\n    \"analyteId\": {{URI_PH_ANALYTE_ID}},\n    \"valueNumeric\": 5.5,\n    \"effectiveDateTime\": \"2025-09-15T10:45:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Add Urine Protein Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_URINE_SPECIMEN_ID}},\n    \"analyteId\": {{URI_PROT_ANALYTE_ID}},\n    \"valueString\": \"ABSENT\",\n    \"effectiveDateTime\": \"2025-09-15T10:45:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Add Urine Glucose Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_URINE_SPECIMEN_ID}},\n    \"analyteId\": {{URI_GLUC_ANALYTE_ID}},\n    \"valueString\": \"ABSENT\",\n    \"effectiveDateTime\": \"2025-09-15T10:45:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Add Urine Ketone Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_URINE_SPECIMEN_ID}},\n    \"analyteId\": {{URI_KETO_ANALYTE_ID}},\n    \"valueString\": \"ABSENT\",\n    \"effectiveDateTime\": \"2025-09-15T10:45:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Add Urine Bilirubin Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_URINE_SPECIMEN_ID}},\n    \"analyteId\": {{URI_BILI_ANALYTE_ID}},\n    \"valueString\": \"ABSENT\",\n    \"effectiveDateTime\": \"2025-09-15T10:45:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Add Urine Urobilinogen Result (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenId\": {{POOJA_URINE_SPECIMEN_ID}},\n    \"analyteId\": {{URI_URO_ANALYTE_ID}},\n    \"valueString\": \"Normal\",\n    \"effectiveDateTime\": \"2025-09-15T10:45:00+05:30\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Technician Lab A - Send Observations for Verification (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {{POOJA_APTT_OBS_ID}},\n    {{POOJA_URINE_VOL_OBS_ID}},\n    {{POOJA_URINE_COLOUR_OBS_ID}},\n    {{POOJA_URINE_APPEARANCE_OBS_ID}},\n    {{POOJA_URINE_SG_OBS_ID}},\n    {{POOJA_URINE_PH_OBS_ID}},\n    {{POOJA_URINE_PROT_OBS_ID}},\n    {{POOJA_URINE_GLUC_OBS_ID}},\n    {{POOJA_URINE_KETO_OBS_ID}},\n    {{POOJA_URINE_BILI_OBS_ID}},\n    {{POOJA_URINE_URO_OBS_ID}}\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations/send-for-verification",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations",
+								"send-for-verification"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Pathologist Lab A - Approve Observations (Pooja)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "admin",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "adminpass",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\n    {{POOJA_APTT_OBS_ID}},\n    {{POOJA_URINE_VOL_OBS_ID}},\n    {{POOJA_URINE_COLOUR_OBS_ID}},\n    {{POOJA_URINE_APPEARANCE_OBS_ID}},\n    {{POOJA_URINE_SG_OBS_ID}},\n    {{POOJA_URINE_PH_OBS_ID}},\n    {{POOJA_URINE_PROT_OBS_ID}},\n    {{POOJA_URINE_GLUC_OBS_ID}},\n    {{POOJA_URINE_KETO_OBS_ID}},\n    {{POOJA_URINE_BILI_OBS_ID}},\n    {{POOJA_URINE_URO_OBS_ID}}\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/observations/approve",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"observations",
+								"approve"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Specimen",
+			"item": [
+				{
+					"name": "Create Specimen (Citrated Plasma) for Pooja",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenTypeId\": {{SPECIMEN_PLASMA_ID}},\n    \"collectionDate\": \"2025-09-15T09:15:00+05:30\",\n    \"receivedDate\": \"2025-09-15T09:30:00+05:30\",\n    \"status\": \"collected\",\n    \"containerId\": \"DV259850\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/specimens",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"specimens"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Create Specimen (Urine) for Pooja",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"serviceRequestId\": {{POOJA_SERVICEREQUEST_ID}},\n    \"specimenTypeId\": {{SPECIMEN_URINE_ID}},\n    \"collectionDate\": \"2025-09-15T09:15:00+05:30\",\n    \"receivedDate\": \"2025-09-15T09:30:00+05:30\",\n    \"status\": \"collected\",\n    \"containerId\": \"DV469444\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/specimens",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"specimens"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Specimen by ID",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/specimens/{{POOJA_PLASMA_SPECIMEN_ID}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"specimens",
+								"{{POOJA_PLASMA_SPECIMEN_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Specimen Status",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"status\": \"received\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/specimens/{{POOJA_PLASMA_SPECIMEN_ID}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"specimens",
+								"{{POOJA_PLASMA_SPECIMEN_ID}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Billing",
+			"item": [
+				{
+					"name": "Create Bill for Pooja's Encounter",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"encounterId\": {{POOJA_ENCOUNTER_ID}},\n    \"serviceRequestIds\": [{{POOJA_SERVICEREQUEST_ID}}],\n    \"discountPercentage\": 0.0,\n    \"initialPaymentMethod\": \"NONE\",\n    \"initialPaidAmount\": 0.0,\n    \"notes\": \"Bill for APTT and Urine Analysis\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/bills",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bills"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Record Partial Payment for Pooja's Bill",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"paymentMethod\": \"UPI\",\n    \"amountPaid\": 500.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/bills/{{POOJA_BILL_ID}}/payment",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bills",
+								"{{POOJA_BILL_ID}}",
+								"payment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Record Final Payment for Pooja's Bill",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"paymentMethod\": \"CASH\",\n    \"amountPaid\": 250.00\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/bills/{{POOJA_BILL_ID}}/payment",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bills",
+								"{{POOJA_BILL_ID}}",
+								"payment"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bill by ID",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/bills/{{POOJA_BILL_ID}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bills",
+								"{{POOJA_BILL_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bills by Encounter",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/bills/by-encounter/{{POOJA_ENCOUNTER_ID}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bills",
+								"by-encounter",
+								"{{POOJA_ENCOUNTER_ID}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bills by Organization (DUE)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/bills/by-organization/{{LAB_A_ORG_ID}}?status=DUE",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bills",
+								"by-organization",
+								"{{LAB_A_ORG_ID}}"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "DUE"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Bills by Organization (PAID)",
+					"request": {
+						"auth": {
+							"type": "basic",
+							"basic": [
+								{
+									"key": "username",
+									"value": "tech.labA",
+									"type": "string"
+								},
+								{
+									"key": "password",
+									"value": "techpassword123",
+									"type": "string"
+								}
+							]
+						},
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/bills/by-organization/{{LAB_A_ORG_ID}}?status=PAID",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bills",
+								"by-organization",
+								"{{LAB_A_ORG_ID}}"
+							],
+							"query": [
+								{
+									"key": "status",
+									"value": "PAID"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"auth": {
+		"type": "basic"
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	]
+}

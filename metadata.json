@@ -1,0 +1,5 @@
+{
+  "name": "Next-Gen LIMS",
+  "description": "A comprehensive Laboratory Information Management System (LIMS) designed to digitize and integrate laboratory workflows including patient registration, billing, test reporting, and radiology imaging, with compliance for ABHA/ABDM.",
+  "requestFramePermissions": []
+}
