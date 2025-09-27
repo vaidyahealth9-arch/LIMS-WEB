@@ -3,61 +3,55 @@ import type { Test, OrganizationTest, Unit, SpecimenType, TestAnalyte, Reference
 
 const API_BASE_URL = '/api';
 
+export const login = async (username, password) => {
+  const response = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ username, password }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
+    throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+  }
+
+  return response.json();
+};
+
 // Helper to get authorization headers
 const getAuthHeaders = () => {
-    // Using Basic Auth with credentials "admin:adminpass"
-    const credentials = btoa('admin:adminpass');
+    const token = localStorage.getItem('token');
+    if (token) {
+        return {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+        };
+    }
     return {
-        'Authorization': `Basic ${credentials}`,
         'Content-Type': 'application/json',
     };
 };
 
-const getTechnicianAuthHeaders = () => {
-    // Using Basic Auth with credentials "admin:adminpass"
-    const credentials = btoa('tech.labA:techpassword123');
-    return {
-        'Authorization': `Basic ${credentials}`,
-        'Content-Type': 'application/json',
-    };
-};
-
-/**
- * A generic fetch wrapper to handle errors and JSON parsing
- * @param url The URL to fetch
- * @param options The fetch options
- * @returns The JSON response
- */
 const fetchApi = async <T>(url: string, options: RequestInit = {}): Promise<T> => {
-    const response = await fetch(url, {
+    const config = {
         ...options,
         headers: {
             ...getAuthHeaders(),
             ...options.headers,
         },
-    });
+    };
+
+    const response = await fetch(url, config);
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
         throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
 
-    return response.json();
-};
-
-
-const fetchTechnicianApi = async <T>(url: string, options: RequestInit = {}): Promise<T> => {
-    const response = await fetch(url, {
-        ...options,
-        headers: {
-            ...getTechnicianAuthHeaders(),
-            ...options.headers,
-        },
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    if (response.status === 204) {
+        return null as T;
     }
 
     return response.json();
@@ -152,7 +146,7 @@ export const getEnabledTestsForLab = (organizationId: string): Promise<Organizat
 // --- Patients ---
 
 export const registerPatient = (data: any): Promise<PatientRegistrationResponse> => {
-    return fetchTechnicianApi<PatientRegistrationResponse>(`${API_BASE_URL}/patients/register`, {
+    return fetchApi<PatientRegistrationResponse>(`${API_BASE_URL}/patients/register`, {
         method: 'POST',
         body: JSON.stringify(data),
     });
@@ -167,6 +161,18 @@ export const verifyAbha = (patientId: string, data: any): Promise<any> => {
 
 export const getPatientsByOrganization = (organizationId: string): Promise<PatientRegistrationResponse[]> => {
     return fetchApi<PatientRegistrationResponse[]>(`${API_BASE_URL}/patients/by-organization/${organizationId}`);
+};
+
+export interface Paginated<T> {
+    content: T[];
+    totalPages: number;
+    totalElements: number;
+    number: number;
+    size: number;
+}
+
+export const searchPatients = (organizationId: string, query: string, page: number, size: number): Promise<Paginated<PatientRegistrationResponse>> => {
+    return fetchApi<Paginated<PatientRegistrationResponse>>(`${API_BASE_URL}/patients/by-organization/${organizationId}/search?query=${query}&page=${page}&size=${size}`);
 };
 
 // --- Encounters & Service Requests ---

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { registerPatient } from '../services/api';
+import React, { useState, useEffect } from 'react';
+import { registerPatient, searchPatients } from '../services/api';
 import type { PatientRegistrationResponse } from '../types';
 
 const PatientRegistration: React.FC = () => {
@@ -7,7 +7,7 @@ const PatientRegistration: React.FC = () => {
     
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
-    const [gender, setGender] = useState<'male' | 'female' | 'other' | ''>('');
+    const [gender, setGender] = useState<'male' | 'female' | 'other' | '' > ('');
     const [dateOfBirth, setDateOfBirth] = useState('');
     const [phone, setPhone] = useState('');
     const [email, setEmail] = useState('');
@@ -15,7 +15,16 @@ const PatientRegistration: React.FC = () => {
     const [city, setCity] = useState('');
     const [state, setState] = useState('');
     const [postalCode, setPostalCode] = useState('');
-    const [aadhaar, setAadhaar] = useState();
+    const [aadhaar, setAadhaar] = useState('');
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState<PatientRegistrationResponse[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [selectedPatient, setSelectedPatient] = useState<PatientRegistrationResponse | null>(null);
+    
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const pageSize = 5;
 
     const handleCheckAbha = () => {
         setAbhaStatus('loading');
@@ -25,9 +34,95 @@ const PatientRegistration: React.FC = () => {
         }, 1500);
     };
 
+    const clearForm = () => {
+        setFirstName('');
+        setLastName('');
+        setGender('');
+        setDateOfBirth('');
+        setPhone('');
+        setEmail('');
+        setAddress('');
+        setCity('');
+        setState('');
+        setPostalCode('');
+        setAadhaar('');
+        setSelectedPatient(null);
+        setSearchQuery('');
+        setSearchResults([]);
+        setCurrentPage(1);
+        setTotalPages(0);
+    };
+
+    const handlePatientSelect = (patient: PatientRegistrationResponse) => {
+        setSelectedPatient(patient);
+        setFirstName(patient.firstName);
+        setLastName(patient.lastName);
+        setGender(patient.gender as any);
+        setDateOfBirth(patient.dateOfBirth ? patient.dateOfBirth.split('T')[0] : '');
+        setPhone(patient.contactPhone || '');
+        setEmail(patient.contactEmail || '');
+        setAddress(patient.addressLine1 || '');
+        setCity(patient.city || '');
+        setState(patient.state || '');
+        setPostalCode(patient.postalCode || '');
+        setAadhaar('');
+        setSearchResults([]);
+        setTotalPages(0);
+        setSearchQuery(`${patient.firstName} ${patient.lastName} (${patient.localMrnValue})`);
+    };
+
+    const performSearch = async (query: string, page: number) => {
+        if (query.length < 3) {
+            setSearchResults([]);
+            setTotalPages(0);
+            return;
+        }
+        setIsSearching(true);
+        try {
+            const response = await searchPatients('2', query, page - 1, pageSize);
+            setSearchResults(response.content);
+            setTotalPages(response.totalPages);
+            setCurrentPage(page);
+        } catch (error) {
+            console.error('Patient search failed:', error);
+            setSearchResults([]);
+            setTotalPages(0);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+    };
+
+    const handleSearchClick = () => {
+        performSearch(searchQuery, 1);
+    };
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            performSearch(searchQuery, currentPage - 1);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            performSearch(searchQuery, currentPage + 1);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent, goToBilling = false) => {
         e.preventDefault();
         
+        if (selectedPatient) {
+            alert(`An existing patient is selected. To register a new patient, please clear the form first.`);
+            if (goToBilling) {
+                console.log('Navigate to billing for existing patient id:', selectedPatient.id);
+            }
+            return;
+        }
+
         const patientData = {
             firstName,
             lastName,
@@ -47,10 +142,9 @@ const PatientRegistration: React.FC = () => {
             const response: PatientRegistrationResponse = await registerPatient(patientData);
             alert(`Patient registered successfully! MRN: ${response.localMrnValue}`);
             if (goToBilling) {
-                // Here you would navigate to the billing page, e.g., using react-router-dom
-                // history.push(`/billing/${response.id}`);
                 console.log('Navigate to billing for patient id:', response.id);
             }
+            clearForm();
         } catch (error) {
             console.error('Failed to register patient:', error);
             alert(`Failed to register patient: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -59,17 +153,71 @@ const PatientRegistration: React.FC = () => {
 
     return (
         <div className="bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Register New Patient</h2>
+            <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-bold text-gray-800">Register New Patient</h2>
+                <button onClick={clearForm} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none">
+                    Clear Form
+                </button>
+            </div>
 
-            <div className="mb-6">
+            <div className="mb-6 relative">
                 <label htmlFor="search-patient" className="block text-sm font-medium text-gray-700 mb-1">Search Existing Patient</label>
-                <input
-                    type="text"
-                    id="search-patient"
-                    placeholder="Search by Phone, Name, UHID, Aadhaar, ABHA number..."
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                />
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        id="search-patient"
+                        placeholder="Search by Phone, Name, UHID, Aadhaar, ABHA number..."
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                    />
+                    <button
+                        type="button"
+                        onClick={handleSearchClick}
+                        className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75"
+                        disabled={isSearching}
+                    >
+                        {isSearching ? '...' : 'Search'}
+                    </button>
+                </div>
                  <p className="text-xs text-gray-500 mt-1">Implements substring, fuzzy search, and autocomplete.</p>
+                 {searchResults.length > 0 && (
+                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg">
+                        <ul className="max-h-60 overflow-y-auto">
+                            {searchResults.map(patient => (
+                                <li 
+                                    key={patient.id} 
+                                    className="px-4 py-3 cursor-pointer hover:bg-indigo-50"
+                                    onClick={() => handlePatientSelect(patient)}
+                                >
+                                    <p className="font-semibold text-gray-800">{patient.firstName} {patient.lastName}</p>
+                                    <p className="text-sm text-gray-600">MRN: {patient.localMrnValue} &bull; Phone: {patient.contactPhone}</p>
+                                </li>
+                            ))}
+                        </ul>
+                        {totalPages > 1 && (
+                            <div className="flex justify-between items-center p-2 border-t border-gray-200">
+                                <button
+                                    onClick={handlePreviousPage}
+                                    disabled={currentPage === 1}
+                                    className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                                >
+                                    Previous
+                                </button>
+                                <span className="text-sm text-gray-600">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <button
+                                    onClick={handleNextPage}
+                                    disabled={currentPage === totalPages}
+                                    className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
 
             <div className="border-t border-gray-200 my-6"></div>

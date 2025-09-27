@@ -48,6 +48,10 @@ export interface PatientRegistrationResponse {
     organizationId: number;
     contactPhone: string;
     contactEmail: string;
+    addressLine1: string;
+    city: string;
+    state: string;
+    postalCode: string;
 }
 
 export interface Test {
