@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 
-const Header: React.FC<{ user: { username: string, roles: string[] } | null, handleLogin: Function, handleLogout: Function }> = ({ user, handleLogin, handleLogout }) => {
+const Header: React.FC<{ user: { username: string, roles: string[], organizationName: string } | null, handleLogin: Function, handleLogout: Function }> = ({ user, handleLogin, handleLogout }) => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState<string | null>(null);
@@ -26,7 +26,7 @@ const Header: React.FC<{ user: { username: string, roles: string[] } | null, han
                     <div className="ml-4 flex items-center">
                         <div className="flex flex-col text-right">
                             <span className="text-sm font-semibold text-gray-700">{user.username}</span>
-                            <span className="text-xs text-gray-500">{user.roles.join(', ')}</span>
+                            <span className="text-xs text-gray-500">{user.organizationName}</span>
                         </div>
                         <img className="w-10 h-10 ml-3 rounded-full object-cover" src="https://picsum.photos/100" alt="User" />
                     </div>

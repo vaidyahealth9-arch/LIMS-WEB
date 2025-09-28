@@ -69,9 +69,15 @@ export interface Test {
 }
 
 export interface OrganizationTest {
-    test_id: string;
-    is_enabled: boolean;
+    organizationId: number;
+    organizationName: string;
+    testId: number;
+    testLocalCode: string;
+    testName: string;
+    isEnabled: boolean;
     price: number;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export interface BilledTest {
@@ -169,12 +175,14 @@ export interface Organization {
 }
 
 export interface Encounter {
-    id: string;
-    patientId: string;
-    startTime: string;
-    status: string;
-    encounterClass: string;
-    serviceProviderId: string;
+    id: number;
+    patientId: number;
+    patientName: string;
+    mrnId: string;
+    referenceDoctor: string;
+    date: string;
+    status: 'arrived' | 'in-progress' | 'finished' | 'cancelled';
+    tests: string[];
 }
 
 export interface ServiceRequest {

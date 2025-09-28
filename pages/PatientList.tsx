@@ -1,12 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import type { Patient, PatientRegistrationResponse, Test } from '../types';
-import { searchPatients, getAllTests } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import type { Encounter, Test } from '../types';
+import { searchEncounters, getAllTests } from '../services/api';
 
-const StatusBadge: React.FC<{ status: Patient['status'] }> = ({ status }) => {
+const StatusBadge: React.FC<{ status: Encounter['status'] }> = ({ status }) => {
     const statusClasses = {
-        Completed: 'bg-green-100 text-green-800',
-        Ongoing: 'bg-yellow-100 text-yellow-800',
-        'Stopped/Interrupted': 'bg-red-100 text-red-800',
+        arrived: 'bg-blue-100 text-blue-800',
+        'in-progress': 'bg-yellow-100 text-yellow-800',
+        finished: 'bg-green-100 text-green-800',
+        cancelled: 'bg-red-100 text-red-800',
     };
     return (
         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClasses[status]}`}>
@@ -15,51 +17,67 @@ const StatusBadge: React.FC<{ status: Patient['status'] }> = ({ status }) => {
     );
 };
 
+const ActionButtons: React.FC<{ encounter: Encounter }> = ({ encounter }) => {
+    const navigate = useNavigate();
+    const { status, tests } = encounter;
+
+    const handleAddTests = () => {
+        navigate('/create-tests', { state: { encounter } });
+    };
+
+    if (status === 'arrived' || !tests || tests.length === 0) {
+        return <button onClick={handleAddTests} className="text-indigo-600 hover:text-indigo-900">Add tests</button>;
+    }
+
+    if (status === 'in-progress') {
+        return (
+            <>
+                <button onClick={handleAddTests} className="text-indigo-600 hover:text-indigo-900">Add tests</button>
+                <button className="text-green-600 hover:text-green-900">Bill</button>
+            </>
+        );
+    }
+
+    if (status === 'finished') {
+        return <button className="text-green-600 hover:text-green-900">Print Report</button>;
+    }
+
+    return null;
+};
+
 const PatientList: React.FC = () => {
-    const [patients, setPatients] = useState<Patient[]>([]);
+    const [encounters, setEncounters] = useState<Encounter[]>([]);
     const [tests, setTests] = useState<Test[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [selectedTest, setSelectedTest] = useState('');
+    const [selectedTests, setSelectedTests] = useState<string[]>([]);
+    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const pageSize = 10;
 
-    const fetchPatients = async (query: string, testId: string, page: number) => {
+    const fetchEncounters = async (query: string, testIds: string[], searchDate: string, page: number) => {
         setIsLoading(true);
         try {
-            const orgId = '2'; // Hardcoded for now
-            // Assuming searchPatients can handle empty query for initial load
-            // and will eventually handle testId for filtering.
-            const response = await searchPatients(orgId, query, page - 1, pageSize);
+            const orgId = localStorage.getItem('organizationId');
+            if (!orgId) {
+                throw new Error('Organization ID not found');
+            }
+            const response = await searchEncounters(orgId, searchDate, query, testIds, page - 1, pageSize);
             
-            const transformedPatients: Patient[] = response.content.map(p => ({
-                id: p.id.toString(),
-                uhid: p.localMrnValue,
-                name: `${p.firstName} ${p.lastName}`,
-                age: new Date().getFullYear() - new Date(p.dateOfBirth).getFullYear(),
-                gender: p.gender.charAt(0).toUpperCase() + p.gender.slice(1) as 'Male' | 'Female' | 'Other',
-                phone: p.contactPhone,
-                status: 'Ongoing', // Hardcoded
-                date: new Date(p.createdAt).toLocaleDateString(),
-                refDoctor: 'N/A', // Hardcoded
-                tests: [], // Hardcoded
-                amount: 0, // Hardcoded
-                abhaId: p.abhaId,
-            }));
-            setPatients(transformedPatients);
+            setEncounters(response.content);
             setTotalPages(response.totalPages);
             setCurrentPage(page);
         } catch (error) {
-            console.error('Failed to fetch patients:', error);
+            console.error('Failed to fetch encounters:', error);
         } finally {
             setIsLoading(false);
         }
     };
 
     useEffect(() => {
-        // Fetch initial patient list
-        fetchPatients('', '', 1);
+        // Fetch initial encounter list
+        fetchEncounters('', [], date, 1);
 
         // Fetch tests for the filter dropdown
         const fetchTests = async () => {
@@ -74,24 +92,35 @@ const PatientList: React.FC = () => {
     }, []);
 
     const handleFilter = () => {
-        fetchPatients(searchQuery, selectedTest, 1);
+        fetchEncounters(searchQuery, selectedTests, date, 1);
     };
 
     const handlePreviousPage = () => {
         if (currentPage > 1) {
-            fetchPatients(searchQuery, selectedTest, currentPage - 1);
+            fetchEncounters(searchQuery, selectedTests, date, currentPage - 1);
         }
     };
 
     const handleNextPage = () => {
         if (currentPage < totalPages) {
-            fetchPatients(searchQuery, selectedTest, currentPage + 1);
+            fetchEncounters(searchQuery, selectedTests, date, currentPage + 1);
         }
     };
+    
+    const handleTestSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const { options } = e.target;
+        const value: string[] = [];
+        for (let i = 0, l = options.length; i < l; i += 1) {
+            if (options[i].selected) {
+                value.push(options[i].value);
+            }
+        }
+        setSelectedTests(value);
+    }
 
     return (
         <div className="bg-white p-6 rounded-xl shadow-lg">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">Patient Records Dashboard</h2>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">Encounters Dashboard</h2>
             
             {/* Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
@@ -103,16 +132,17 @@ const PatientList: React.FC = () => {
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
                 <select 
+                    multiple
                     className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
-                    value={selectedTest}
-                    onChange={(e) => setSelectedTest(e.target.value)}
+                    value={selectedTests}
+                    onChange={handleTestSelection}
                 >
                     <option value="">All Tests</option>
                     {tests.map(test => (
                         <option key={test.id} value={test.id}>{test.name}</option>
                     ))}
                 </select>
-                <input type="date" className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                <input type="date" className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={date} onChange={e => setDate(e.target.value)} />
                 <button 
                     onClick={handleFilter}
                     className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -122,7 +152,7 @@ const PatientList: React.FC = () => {
                 </button>
             </div>
 
-            {/* Patient Table */}
+            {/* Encounter Table */}
             <div className="overflow-x-auto">
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
@@ -131,27 +161,24 @@ const PatientList: React.FC = () => {
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref. Doctor</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tests</th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                        {patients.map((patient) => (
-                            <tr key={patient.id}>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{patient.uhid}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{patient.name}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{patient.refDoctor}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{patient.tests.join(', ')}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">₹{patient.amount}</td>
-                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{patient.date}</td>
+                        {encounters.map((encounter) => (
+                            <tr key={encounter.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{encounter.mrnId}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{encounter.patientName}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{encounter.referenceDoctor}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{encounter.tests.join(', ')}</td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(encounter.date).toLocaleDateString()}</td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <StatusBadge status={patient.status} />
+                                    <StatusBadge status={encounter.status} />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                    <button className="text-indigo-600 hover:text-indigo-900">Bill</button>
-                                    <button className="text-green-600 hover:text-green-900">Print Report</button>
+                                    <ActionButtons encounter={encounter} />
                                 </td>
                             </tr>
                         ))}

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { registerPatient, searchPatients } from '../services/api';
 import type { PatientRegistrationResponse } from '../types';
 
 const PatientRegistration: React.FC = () => {
+    const navigate = useNavigate();
     const [abhaStatus, setAbhaStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
     
     const [firstName, setFirstName] = useState('');
@@ -79,7 +81,11 @@ const PatientRegistration: React.FC = () => {
         }
         setIsSearching(true);
         try {
-            const response = await searchPatients('2', query, page - 1, pageSize);
+            const orgId = localStorage.getItem('organizationId');
+            if (!orgId) {
+                throw new Error('Organization ID not found');
+            }
+            const response = await searchPatients(orgId, query, page - 1, pageSize);
             setSearchResults(response.content);
             setTotalPages(response.totalPages);
             setCurrentPage(page);
@@ -112,14 +118,20 @@ const PatientRegistration: React.FC = () => {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent, goToBilling = false) => {
+    const handleSubmit = async (e: React.FormEvent, goToEncounter = false) => {
         e.preventDefault();
         
         if (selectedPatient) {
-            alert(`An existing patient is selected. To register a new patient, please clear the form first.`);
-            if (goToBilling) {
-                console.log('Navigate to billing for existing patient id:', selectedPatient.id);
+            if (goToEncounter) {
+                console.log('Navigate to encounter for existing patient id:', selectedPatient.id);
+                navigate('/encounter', { state: { patient: selectedPatient } });
             }
+            return;
+        }
+
+        const orgId = localStorage.getItem('organizationId');
+        if (!orgId) {
+            alert('Organization ID not found. Please log in again.');
             return;
         }
 
@@ -134,15 +146,16 @@ const PatientRegistration: React.FC = () => {
             city,
             state,
             postalCode,
-            organizationId: '2', // Hardcoded
+            organizationId: orgId,
             aadhaarNumber: aadhaar,
         };
 
         try {
             const response: PatientRegistrationResponse = await registerPatient(patientData);
             alert(`Patient registered successfully! MRN: ${response.localMrnValue}`);
-            if (goToBilling) {
-                console.log('Navigate to billing for patient id:', response.id);
+            if (goToEncounter) {
+                console.log('Navigate to encounter for patient id:', response.id);
+                navigate('/encounter', { state: { patient: response } });
             }
             clearForm();
         } catch (error) {
@@ -154,7 +167,7 @@ const PatientRegistration: React.FC = () => {
     return (
         <div className="bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
             <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">Register New Patient</h2>
+                <h2 className="text-2xl font-bold text-gray-800">{selectedPatient ? 'Update Patient Information' : 'Register New Patient'}</h2>
                 <button onClick={clearForm} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none">
                     Clear Form
                 </button>
@@ -259,19 +272,14 @@ const PatientRegistration: React.FC = () => {
                         <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number <span className="text-red-500">*</span></label>
                         <input type="tel" id="phone" required value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
                     </div>
-                    <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email ID</label>
-                        <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
-                    </div>
-                     <div>
-                        <label htmlFor="ref-doctor" className="block text-sm font-medium text-gray-700">Ref. Doctor</label>
-                        <input type="text" id="ref-doctor" className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
-                    </div>
-                    <div className="md:col-span-2">
-                        <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address</label>
-                        <textarea id="address" rows={2} value={address} onChange={e => setAddress(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                    </div>
-                    <div>
+                                         <div>
+                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email ID</label>
+                                            <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                                        </div>
+                                        <div className="md:col-span-2">
+                                            <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address</label>
+                                            <textarea id="address" rows={2} value={address} onChange={e => setAddress(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
+                                        </div>                    <div>
                         <label htmlFor="city" className="block text-sm font-medium text-gray-700">City</label>
                         <input type="text" id="city" value={city} onChange={e => setCity(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
                     </div>
@@ -304,10 +312,10 @@ const PatientRegistration: React.FC = () => {
                 
                 <div className="mt-8 flex justify-end space-x-4">
                     <button type="submit" className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none">
-                        Register
+                        {selectedPatient ? 'Update' : 'Register'}
                     </button>
                     <button type="button" onClick={(e) => handleSubmit(e, true)} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75">
-                        Go to Billing →
+                        {selectedPatient ? 'Update & Create Encounter' : 'Register & Create Encounter'} →
                     </button>
                 </div>
             </form>

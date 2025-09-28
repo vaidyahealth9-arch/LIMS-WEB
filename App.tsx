@@ -11,11 +11,13 @@ import TestEntry from './pages/TestEntry';
 import LabManagement from './pages/LabManagement';
 import UserManagement from './pages/UserManagement';
 import IrisWorklist from './pages/IrisWorklist';
+import Encounter from './pages/Encounter';
+import CreateTests from './pages/CreateTests';
 import { login } from './services/api';
 
 const App: React.FC = () => {
     const [token, setToken] = useState<string | null>(null);
-    const [user, setUser] = useState<{ username: string, roles: string[] } | null>(null);
+    const [user, setUser] = useState<{ username: string, roles: string[], organizationId: string, organizationName: string } | null>(null);
 
     useEffect(() => {
         const storedToken = localStorage.getItem('token');
@@ -30,11 +32,19 @@ const App: React.FC = () => {
 
     const handleLogin = async (username, password) => {
         const response = await login(username, password);
-        const { token, userDetails } = response;
+        const { token, userId, organizationId, organizationName } = response;
+        const userDetails = {
+            username: response.username,
+            roles: [], // Assuming roles are not in the response for now
+            organizationId,
+            organizationName
+        };
         setToken(token);
         setUser(userDetails);
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userDetails));
+        localStorage.setItem('organizationId', organizationId);
+        localStorage.setItem('userId', userId);
     };
 
     const handleLogout = () => {
@@ -42,6 +52,7 @@ const App: React.FC = () => {
         setUser(null);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        localStorage.removeItem('organizationId');
     };
 
     return (
@@ -60,6 +71,8 @@ const App: React.FC = () => {
                             <Route path="/lab-management" element={<LabManagement />} />
                             <Route path="/user-management" element={<UserManagement />} />
                             <Route path="/iris" element={<IrisWorklist />} />
+                            <Route path="/encounter" element={<Encounter />} />
+                            <Route path="/create-tests" element={<CreateTests />} />
                         </Routes>
                     </main>
                 </div>
