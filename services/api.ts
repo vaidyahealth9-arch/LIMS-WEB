@@ -20,6 +20,28 @@ export const login = async (username, password) => {
   return response.json();
 };
 
+export const refreshToken = async () => {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        },
+    });
+
+    if (!response.ok) {
+        // If refresh fails, logout the user
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('organizationId');
+        window.location.href = '/'; // Or your login page
+        throw new Error('Session expired. Please log in again.');
+    }
+
+    const { token } = await response.json();
+    localStorage.setItem('token', token);
+    return token;
+};
+
 // Helper to get authorization headers
 const getAuthHeaders = () => {
     const token = localStorage.getItem('token');
@@ -34,6 +56,9 @@ const getAuthHeaders = () => {
     };
 };
 
+let isRefreshing = false;
+let refreshPromise: Promise<string> | null = null;
+
 const fetchApi = async <T>(url: string, options: RequestInit = {}): Promise<T> => {
     const config = {
         ...options,
@@ -43,7 +68,34 @@ const fetchApi = async <T>(url: string, options: RequestInit = {}): Promise<T> =
         },
     };
 
-    const response = await fetch(url, config);
+    let response = await fetch(url, config);
+
+    if (response.status === 401) {
+        if (!isRefreshing) {
+            isRefreshing = true;
+            refreshPromise = refreshToken().finally(() => {
+                isRefreshing = false;
+            });
+        }
+
+        try {
+            const newToken = await refreshPromise;
+            if (newToken) {
+                 const newConfig = {
+                    ...config,
+                    headers: {
+                        ...config.headers,
+                        'Authorization': `Bearer ${newToken}`,
+                    },
+                };
+                response = await fetch(url, newConfig);
+            }
+        } catch (error) {
+            // The refreshToken function already handles logout on failure.
+            // We just need to rethrow the error to the caller.
+            throw error;
+        }
+    }
 
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({ message: 'An unknown error occurred' }));
