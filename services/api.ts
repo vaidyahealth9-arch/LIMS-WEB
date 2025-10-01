@@ -227,9 +227,9 @@ export const searchPatients = (organizationId: string, query: string, page: numb
     return fetchApi<Paginated<PatientRegistrationResponse>>(`${API_BASE_URL}/patients/by-organization/${organizationId}/search?query=${query}&page=${page}&size=${size}`);
 };
 
-export const searchEncounters = (organizationId: string, date: string, query: string, tests: string[], page: number, size: number): Promise<Paginated<Encounter>> => {
+export const searchEncounters = (organizationId: string, startDate: string, endDate: string, query: string, tests: string[], page: number, size: number): Promise<Paginated<Encounter>> => {
     const testParams = tests.map(t => `tests=${t}`).join('&');
-    return fetchApi<Paginated<Encounter>>(`${API_BASE_URL}/encounters/search?organizationId=${organizationId}&date=${date}&query=${query}&${testParams}&page=${page}&size=${size}`);
+    return fetchApi<Paginated<Encounter>>(`${API_BASE_URL}/encounters/search?organizationId=${organizationId}&startDate=${startDate}&endDate=${endDate}&query=${query}&${testParams}&page=${page}&size=${size}`);
 };
 
 // --- Encounters & Service Requests ---

@@ -50,20 +50,21 @@ const PatientList: React.FC = () => {
     const [tests, setTests] = useState<Test[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTests, setSelectedTests] = useState<string[]>([]);
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const pageSize = 10;
 
-    const fetchEncounters = async (query: string, testIds: string[], searchDate: string, page: number) => {
+    const fetchEncounters = async (query: string, testIds: string[], startDate: string, endDate: string, page: number) => {
         setIsLoading(true);
         try {
             const orgId = localStorage.getItem('organizationId');
             if (!orgId) {
                 throw new Error('Organization ID not found');
             }
-            const response = await searchEncounters(orgId, searchDate, query, testIds, page - 1, pageSize);
+            const response = await searchEncounters(orgId, startDate, endDate, query, testIds, page - 1, pageSize);
             
             setEncounters(response.content);
             setTotalPages(response.totalPages);
@@ -77,7 +78,7 @@ const PatientList: React.FC = () => {
 
     useEffect(() => {
         // Fetch initial encounter list
-        fetchEncounters('', [], date, 1);
+        fetchEncounters('', [], startDate, endDate, 1);
 
         // Fetch tests for the filter dropdown
         const fetchTests = async () => {
@@ -92,18 +93,18 @@ const PatientList: React.FC = () => {
     }, []);
 
     const handleFilter = () => {
-        fetchEncounters(searchQuery, selectedTests, date, 1);
+        fetchEncounters(searchQuery, selectedTests, startDate, endDate, 1);
     };
 
     const handlePreviousPage = () => {
         if (currentPage > 1) {
-            fetchEncounters(searchQuery, selectedTests, date, currentPage - 1);
+            fetchEncounters(searchQuery, selectedTests, startDate, endDate, currentPage - 1);
         }
     };
 
     const handleNextPage = () => {
         if (currentPage < totalPages) {
-            fetchEncounters(searchQuery, selectedTests, date, currentPage + 1);
+            fetchEncounters(searchQuery, selectedTests, startDate, endDate, currentPage + 1);
         }
     };
     
@@ -131,7 +132,7 @@ const PatientList: React.FC = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                <select 
+                {/* {<select 
                     multiple
                     className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"
                     value={selectedTests}
@@ -141,8 +142,12 @@ const PatientList: React.FC = () => {
                     {tests.map(test => (
                         <option key={test.id} value={test.id}>{test.name}</option>
                     ))}
-                </select>
-                <input type="date" className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={date} onChange={e => setDate(e.target.value)} />
+                </select>} */}
+                <div className="flex items-center space-x-2">
+                    <input type="date" className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                    <span>-</span>
+                    <input type="date" className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                </div>
                 <button 
                     onClick={handleFilter}
                     className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
