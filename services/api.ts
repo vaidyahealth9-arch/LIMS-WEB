@@ -152,9 +152,35 @@ export const addTestInterpretationRule = (data: any): Promise<TestInterpretation
         body: JSON.stringify(data),
     });
 };
-
+ 
 export const getAllTests = (): Promise<Test[]> => {
     return fetchApi<Test[]>(`${API_BASE_URL}/tests`);
+};
+
+export const searchServiceRequests = (
+  orgId: string,
+  startDate: string,
+  endDate: string,
+  query: string,
+  testIds: string[],
+  page: number,
+  size: number
+): Promise<Paginated<ServiceRequest>> => {
+  const params = new URLSearchParams({
+    organizationId: orgId,
+    startDate,
+    endDate,
+    page: page.toString(),
+    size: size.toString(),
+  });
+  if (query) {
+    params.append('query', query);
+  }
+  if (testIds && testIds.length > 0) {
+    testIds.forEach(id => params.append('testIds', id));
+  }
+
+  return fetchApi<Paginated<ServiceRequest>>(`${API_BASE_URL}/service-requests/search?${params.toString()}`);
 };
 // --- Organizations (Labs) ---
 

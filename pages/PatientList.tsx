@@ -107,6 +107,26 @@ const PatientList: React.FC = () => {
             fetchEncounters(searchQuery, selectedTests, startDate, endDate, currentPage + 1);
         }
     };
+
+    const handleDatePreset = (preset: '7d' | '1m' | '3m') => {
+        const today = new Date();
+        let pastDate = new Date();
+
+        switch (preset) {
+            case '7d':
+                pastDate.setDate(today.getDate() - 7);
+                break;
+            case '1m':
+                pastDate.setMonth(today.getMonth() - 1);
+                break;
+            case '3m':
+                pastDate.setMonth(today.getMonth() - 3);
+                break;
+        }
+
+        setStartDate(pastDate.toISOString().split('T')[0]);
+        setEndDate(today.toISOString().split('T')[0]);
+    };
     
     const handleTestSelection = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const { options } = e.target;
@@ -143,10 +163,17 @@ const PatientList: React.FC = () => {
                         <option key={test.id} value={test.id}>{test.name}</option>
                     ))}
                 </select>} */}
-                <div className="flex items-center space-x-2">
-                    <input type="date" className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={startDate} onChange={e => setStartDate(e.target.value)} />
-                    <span>-</span>
-                    <input type="date" className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                <div>
+                    <div className="flex items-center space-x-2">
+                        <input type="date" className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={startDate} onChange={e => setStartDate(e.target.value)} />
+                        <span>-</span>
+                        <input type="date" className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" value={endDate} onChange={e => setEndDate(e.target.value)} />
+                    </div>
+                    <div className="flex items-center space-x-2 mt-2">
+                        <button onClick={() => handleDatePreset('7d')} className="px-2 py-1 text-xs text-gray-600 bg-gray-200 rounded-md hover:bg-gray-300">7 days</button>
+                        <button onClick={() => handleDatePreset('1m')} className="px-2 py-1 text-xs text-gray-600 bg-gray-200 rounded-md hover:bg-gray-300">1 month</button>
+                        <button onClick={() => handleDatePreset('3m')} className="px-2 py-1 text-xs text-gray-600 bg-gray-200 rounded-md hover:bg-gray-300">3 months</button>
+                    </div>
                 </div>
                 <button 
                     onClick={handleFilter}

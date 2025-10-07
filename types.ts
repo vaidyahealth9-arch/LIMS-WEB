@@ -56,16 +56,53 @@ export interface PatientRegistrationResponse {
 
 export interface Test {
     id: string;
-    testName: string;
-    localCode: string;
-    loincCode: string;
-    department: string;
-    containerDescription: string;
-    method: string;
-    measuringPrinciple: string;
-    turnAroundTimeText: string;
-    reflexProfileText: string;
-    reportNotes: string;
+    name: string;
+    // Add other test properties as needed
+}
+
+export interface ReferenceRange {
+    id: number;
+    minAgeYears: number;
+    lowValue: number;
+    highValue: number;
+    textRange: string;
+    interpretationCode: string;
+}
+
+export interface Analyte {
+    analyteId: number;
+    analyteName: string;
+    unit: string;
+    referenceRanges: ReferenceRange[];
+}
+
+export interface RequestedTest {
+  testId: number;
+  testLocalCode: string;
+  testName: string;
+  status: string;
+  price: number;
+  analytes: Analyte[];
+}
+
+export interface ServiceRequest {
+  id: number;
+  localOrderValue: string;
+  patientId: number;
+  patientMrn: string;
+  patientName: string;
+  requesterId: number;
+  requesterName: string;
+  encounterId: number;
+  encounterLocalValue: string;
+  orderDate: string;
+  status: string;
+  priority: string;
+  organizationId: number;
+  organizationName: string;
+  requestedTests: RequestedTest[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface OrganizationTest {
@@ -186,10 +223,10 @@ export interface Encounter {
 }
 
 export interface ServiceRequest {
-    id: string;
-    patientId: string;
-    requesterId: string;
-    encounterId: string;
+    id: number;
+    patientId: number;
+    requesterId: number;
+    encounterId: number;
     status: string;
     priority: string;
     testIds: string[];
