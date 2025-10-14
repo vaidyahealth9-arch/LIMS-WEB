@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Encounter, Test } from '../types';
-import { searchEncounters, getAllTests } from '../services/api';
+import { searchEncounters, getAllTests, createBill, updateEncounterStatus } from '../services/api';
 
 const StatusBadge: React.FC<{ status: Encounter['status'] }> = ({ status }) => {
     const statusClasses = {
@@ -17,7 +17,7 @@ const StatusBadge: React.FC<{ status: Encounter['status'] }> = ({ status }) => {
     );
 };
 
-const ActionButtons: React.FC<{ encounter: Encounter }> = ({ encounter }) => {
+const ActionButtons: React.FC<{ encounter: Encounter; onBill: (encounter: Encounter) => void; onUpdate: () => void; }> = ({ encounter, onBill, onUpdate }) => {
     const navigate = useNavigate();
     const { status, tests } = encounter;
 
@@ -25,24 +25,43 @@ const ActionButtons: React.FC<{ encounter: Encounter }> = ({ encounter }) => {
         navigate('/create-tests', { state: { encounter } });
     };
 
-    if (status === 'arrived' || !tests || tests.length === 0) {
-        return <button onClick={handleAddTests} className="text-indigo-600 hover:text-indigo-900">Add tests</button>;
-    }
+    const handleStartProgress = async () => {
+        try {
+            await updateEncounterStatus(encounter.id.toString(), { status: 'IN_PROGRESS' });
+            onUpdate();
+        } catch (error) {
+            console.error('Failed to update status', error);
+            alert('Failed to start progress.');
+        }
+    };
 
-    if (status === 'in-progress') {
-        return (
-            <>
-                <button onClick={handleAddTests} className="text-indigo-600 hover:text-indigo-900">Add tests</button>
-                <button className="text-green-600 hover:text-green-900">Bill</button>
-            </>
-        );
-    }
+    const hasTests = tests && tests.length > 0;
 
-    if (status === 'finished') {
-        return <button className="text-green-600 hover:text-green-900">Print Report</button>;
+    switch (status) {
+        case 'arrived':
+            return (
+                <>
+                    <button onClick={handleAddTests} className="text-indigo-600 hover:text-indigo-900">Add tests</button>
+                    {hasTests && (
+                        <button onClick={handleStartProgress} className="text-blue-600 hover:text-blue-900 ml-2">Start Progress</button>
+                    )}
+                </>
+            );
+        case 'in-progress':
+            return (
+                <>
+                    <button onClick={handleAddTests} className="text-indigo-600 hover:text-indigo-900">Add tests</button>
+                    <button onClick={() => onBill(encounter)} className="text-green-600 hover:text-green-900 ml-2">Bill</button>
+                </>
+            );
+        case 'finished':
+            return <button className="text-green-600 hover:text-green-900">Print Report</button>;
+        default:
+            if (!hasTests) {
+                return <button onClick={handleAddTests} className="text-indigo-600 hover:text-indigo-900">Add tests</button>;
+            }
+            return null;
     }
-
-    return null;
 };
 
 const PatientList: React.FC = () => {
@@ -56,6 +75,18 @@ const PatientList: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const pageSize = 10;
+    const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
+    const [selectedEncounterForBilling, setSelectedEncounterForBilling] = useState<Encounter | null>(null);
+
+    const handleBill = (encounter: Encounter) => {
+        setSelectedEncounterForBilling(encounter);
+        setIsBillingModalOpen(true);
+    };
+
+    const onEncounterUpdate = () => {
+        // Refetch encounters to update status
+        fetchEncounters(searchQuery, selectedTests, startDate, endDate, currentPage);
+    };
 
     const fetchEncounters = async (query: string, testIds: string[], startDate: string, endDate: string, page: number) => {
         setIsLoading(true);
@@ -189,6 +220,7 @@ const PatientList: React.FC = () => {
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead className="bg-gray-50">
                         <tr>
+                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Encounter ID</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient ID</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Patient Name</th>
                             <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ref. Doctor</th>
@@ -201,6 +233,7 @@ const PatientList: React.FC = () => {
                     <tbody className="bg-white divide-y divide-gray-200">
                         {encounters.map((encounter) => (
                             <tr key={encounter.id}>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{encounter.localEncounterValue}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{encounter.mrnId}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{encounter.patientName}</td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{encounter.referenceDoctor}</td>
@@ -210,7 +243,7 @@ const PatientList: React.FC = () => {
                                     <StatusBadge status={encounter.status} />
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                                    <ActionButtons encounter={encounter} />
+                                    <ActionButtons encounter={encounter} onBill={handleBill} onUpdate={onEncounterUpdate} />
                                 </td>
                             </tr>
                         ))}
@@ -240,8 +273,112 @@ const PatientList: React.FC = () => {
                     </button>
                 </div>
             )}
+
+            {isBillingModalOpen && <BillingModal 
+                isOpen={isBillingModalOpen}
+                onClose={() => setIsBillingModalOpen(false)}
+                encounter={selectedEncounterForBilling}
+                onBillCreated={onEncounterUpdate}
+            />}
         </div>
     );
 };
 
 export default PatientList;
+
+const BillingModal: React.FC<{
+    isOpen: boolean;
+    onClose: () => void;
+    encounter: Encounter | null;
+    onBillCreated: () => void;
+}> = ({ isOpen, onClose, encounter, onBillCreated }) => {
+    const [discount, setDiscount] = useState(0);
+    const [paymentMethod, setPaymentMethod] = useState('CASH');
+    const [paidAmount, setPaidAmount] = useState(0);
+    const [notes, setNotes] = useState('');
+    const [dueDate, setDueDate] = useState('');
+
+    useEffect(() => {
+        if (encounter) {
+            // Reset form when a new encounter is selected
+            setDiscount(0);
+            setPaymentMethod('CASH');
+            setPaidAmount(0);
+            setNotes('');
+            setDueDate('');
+        }
+    }, [encounter]);
+
+    if (!isOpen || !encounter) return null;
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+
+        const serviceRequestIds = encounter.serviceRequestIds || [];
+
+        if (serviceRequestIds.length === 0) {
+            alert('This encounter has no service requests to bill.');
+            return;
+        }
+
+        const billData = {
+            encounterId: encounter.id,
+            serviceRequestIds,
+            discountPercentage: discount,
+            initialPaymentMethod: paymentMethod,
+            initialPaidAmount: paidAmount,
+            notes,
+            dueDate: dueDate || undefined,
+        };
+
+        try {
+            await createBill(billData);
+            alert('Bill created successfully!');
+            onBillCreated();
+            onClose();
+        } catch (error) {
+            console.error('Failed to create bill:', error);
+            alert(`Failed to create bill: ${(error as Error).message}`);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+                <div className="mt-3 text-center">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">Create Bill for Encounter #{encounter.localEncounterValue}</h3>
+                    <form onSubmit={handleSubmit} className="mt-2 text-left">
+                        <div className="mb-4">
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Discount (%)</label>
+                            <input type="number" value={discount} onChange={e => setDiscount(Number(e.target.value))} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Payment Method</label>
+                            <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                                <option value="CASH">Cash</option>
+                                <option value="CARD">Card</option>
+                                <option value="UPI">UPI</option>
+                            </select>
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Paid Amount</label>
+                            <input type="number" value={paidAmount} onChange={e => setPaidAmount(Number(e.target.value))} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Notes</label>
+                            <textarea value={notes} onChange={e => setNotes(e.target.value)} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block text-gray-700 text-sm font-bold mb-2">Due Date</label>
+                            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
+                        </div>
+                        <div className="items-center gap-2 mt-3 sm:flex">
+                            <button type="button" onClick={onClose} className="w-full mt-2 p-2.5 flex-1 text-gray-800 bg-gray-100 rounded-md outline-none border ring-offset-2 ring-indigo-600 focus:ring-2">Cancel</button>
+                            <button type="submit" className="w-full mt-2 p-2.5 flex-1 text-white bg-indigo-600 rounded-md outline-none ring-offset-2 ring-indigo-600 focus:ring-2">Create Bill</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    );
+};

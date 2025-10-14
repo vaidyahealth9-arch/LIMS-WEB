@@ -155,6 +155,7 @@ const TestEntry: React.FC = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
+                                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Order ID</th>
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Patient ID</th>
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Patient Name</th>
                                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tests</th>
@@ -165,6 +166,7 @@ const TestEntry: React.FC = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {serviceRequests.map((req) => (
                                 <tr key={req.id} className={`${selectedRequest?.id === req.id ? 'bg-indigo-50' : ''}`}>
+                                    <td className="px-4 py-3 font-medium">{req.localOrderValue}</td>
                                     <td className="px-4 py-3 font-medium">{req.patientMrn}</td>
                                     <td className="px-4 py-3">{req.patientName}</td>
                                     <td className="px-4 py-3">{req.requestedTests.map(t => t.testName).join(', ')}</td>
