@@ -3,16 +3,20 @@ import { useNavigate } from 'react-router-dom';
 import type { Encounter, Test } from '../types';
 import { searchEncounters, getAllTests, createBill, updateEncounterStatus } from '../services/api';
 
+import { Billing } from './Billing';
+
 const StatusBadge: React.FC<{ status: Encounter['status'] }> = ({ status }) => {
-    const statusClasses = {
-        arrived: 'bg-blue-100 text-blue-800',
-        'in-progress': 'bg-yellow-100 text-yellow-800',
-        finished: 'bg-green-100 text-green-800',
-        cancelled: 'bg-red-100 text-red-800',
+    const statusClasses: Record<Encounter['status'], string> = {
+        PLANNED: 'bg-gray-100 text-gray-800',
+        ARRIVED: 'bg-blue-100 text-blue-800',
+        IN_PROGRESS: 'bg-yellow-100 text-yellow-800',
+        FINISHED: 'bg-green-100 text-green-800',
+        CANCELLED: 'bg-red-100 text-red-800',
     };
+    const formattedStatus = status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
     return (
         <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusClasses[status]}`}>
-            {status}
+            {formattedStatus}
         </span>
     );
 };
@@ -38,7 +42,7 @@ const ActionButtons: React.FC<{ encounter: Encounter; onBill: (encounter: Encoun
     const hasTests = tests && tests.length > 0;
 
     switch (status) {
-        case 'arrived':
+        case 'ARRIVED':
             return (
                 <>
                     <button onClick={handleAddTests} className="text-indigo-600 hover:text-indigo-900">Add tests</button>
@@ -47,14 +51,14 @@ const ActionButtons: React.FC<{ encounter: Encounter; onBill: (encounter: Encoun
                     )}
                 </>
             );
-        case 'in-progress':
+        case 'IN_PROGRESS':
             return (
                 <>
                     <button onClick={handleAddTests} className="text-indigo-600 hover:text-indigo-900">Add tests</button>
                     <button onClick={() => onBill(encounter)} className="text-green-600 hover:text-green-900 ml-2">Bill</button>
                 </>
             );
-        case 'finished':
+        case 'FINISHED':
             return <button className="text-green-600 hover:text-green-900">Print Report</button>;
         default:
             if (!hasTests) {
@@ -64,7 +68,7 @@ const ActionButtons: React.FC<{ encounter: Encounter; onBill: (encounter: Encoun
     }
 };
 
-const PatientList: React.FC = () => {
+export const PatientList: React.FC = () => {
     const [encounters, setEncounters] = useState<Encounter[]>([]);
     const [tests, setTests] = useState<Test[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
@@ -274,7 +278,7 @@ const PatientList: React.FC = () => {
                 </div>
             )}
 
-            {isBillingModalOpen && <BillingModal 
+            {isBillingModalOpen && <Billing 
                 isOpen={isBillingModalOpen}
                 onClose={() => setIsBillingModalOpen(false)}
                 encounter={selectedEncounterForBilling}
@@ -284,101 +288,5 @@ const PatientList: React.FC = () => {
     );
 };
 
-export default PatientList;
 
-const BillingModal: React.FC<{
-    isOpen: boolean;
-    onClose: () => void;
-    encounter: Encounter | null;
-    onBillCreated: () => void;
-}> = ({ isOpen, onClose, encounter, onBillCreated }) => {
-    const [discount, setDiscount] = useState(0);
-    const [paymentMethod, setPaymentMethod] = useState('CASH');
-    const [paidAmount, setPaidAmount] = useState(0);
-    const [notes, setNotes] = useState('');
-    const [dueDate, setDueDate] = useState('');
 
-    useEffect(() => {
-        if (encounter) {
-            // Reset form when a new encounter is selected
-            setDiscount(0);
-            setPaymentMethod('CASH');
-            setPaidAmount(0);
-            setNotes('');
-            setDueDate('');
-        }
-    }, [encounter]);
-
-    if (!isOpen || !encounter) return null;
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        const serviceRequestIds = encounter.serviceRequestIds || [];
-
-        if (serviceRequestIds.length === 0) {
-            alert('This encounter has no service requests to bill.');
-            return;
-        }
-
-        const billData = {
-            encounterId: encounter.id,
-            serviceRequestIds,
-            discountPercentage: discount,
-            initialPaymentMethod: paymentMethod,
-            initialPaidAmount: paidAmount,
-            notes,
-            dueDate: dueDate || undefined,
-        };
-
-        try {
-            await createBill(billData);
-            alert('Bill created successfully!');
-            onBillCreated();
-            onClose();
-        } catch (error) {
-            console.error('Failed to create bill:', error);
-            alert(`Failed to create bill: ${(error as Error).message}`);
-        }
-    };
-
-    return (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-            <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-                <div className="mt-3 text-center">
-                    <h3 className="text-lg leading-6 font-medium text-gray-900">Create Bill for Encounter #{encounter.localEncounterValue}</h3>
-                    <form onSubmit={handleSubmit} className="mt-2 text-left">
-                        <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Discount (%)</label>
-                            <input type="number" value={discount} onChange={e => setDiscount(Number(e.target.value))} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Payment Method</label>
-                            <select value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
-                                <option value="CASH">Cash</option>
-                                <option value="CARD">Card</option>
-                                <option value="UPI">UPI</option>
-                            </select>
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Paid Amount</label>
-                            <input type="number" value={paidAmount} onChange={e => setPaidAmount(Number(e.target.value))} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Notes</label>
-                            <textarea value={notes} onChange={e => setNotes(e.target.value)} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-                        </div>
-                        <div className="mb-4">
-                            <label className="block text-gray-700 text-sm font-bold mb-2">Due Date</label>
-                            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" />
-                        </div>
-                        <div className="items-center gap-2 mt-3 sm:flex">
-                            <button type="button" onClick={onClose} className="w-full mt-2 p-2.5 flex-1 text-gray-800 bg-gray-100 rounded-md outline-none border ring-offset-2 ring-indigo-600 focus:ring-2">Cancel</button>
-                            <button type="submit" className="w-full mt-2 p-2.5 flex-1 text-white bg-indigo-600 rounded-md outline-none ring-offset-2 ring-indigo-600 focus:ring-2">Create Bill</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    );
-};

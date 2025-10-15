@@ -5,8 +5,9 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import Dashboard from './pages/Dashboard';
 import PatientRegistration from './pages/PatientRegistration';
-import PatientList from './pages/PatientList';
-import Billing from './pages/Billing';
+import { PatientList } from './pages/PatientList';
+import { Billing } from './pages/Billing';
+import { BillList } from './pages/BillList';
 import TestEntry from './pages/TestEntry';
 import LabManagement from './pages/LabManagement';
 import UserManagement from './pages/UserManagement';
@@ -66,7 +67,7 @@ const App: React.FC = () => {
                             <Route path="/" element={<Dashboard />} />
                             <Route path="/register-patient" element={<PatientRegistration />} />
                             <Route path="/patient-list" element={<PatientList />} />
-                            <Route path="/billing" element={<Billing />} />
+                            <Route path="/billing" element={<BillList />} />
                             <Route path="/entry-verify" element={<TestEntry />} />
                             <Route path="/lab-management" element={<LabManagement />} />
                             <Route path="/user-management" element={<UserManagement />} />

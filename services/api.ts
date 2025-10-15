@@ -366,3 +366,28 @@ export const getBillsByEncounter = (encounterId: string): Promise<Bill[]> => {
 export const getBillsByOrganization = (organizationId: string, status: string): Promise<Bill[]> => {
     return fetchApi<Bill[]>(`${API_BASE_URL}/bills/by-organization/${organizationId}?status=${status}`);
 };
+
+export const getBillableDetailsForEncounter = (encounterId: string): Promise<BillableDetails> => {
+    return fetchApi<BillableDetails>(`${API_BASE_URL}/bills/encounter/${encounterId}/billable-details`);
+};
+
+export const searchBills = (
+    organizationId: string,
+    startDate: string,
+    endDate: string,
+    query: string,
+    page: number,
+    size: number
+): Promise<Paginated<Bill>> => {
+    const params = new URLSearchParams({
+        organizationId,
+        startDate,
+        endDate,
+        page: page.toString(),
+        size: size.toString(),
+    });
+    if (query) {
+        params.append('query', query);
+    }
+    return fetchApi<Paginated<Bill>>(`${API_BASE_URL}/bills/search?${params.toString()}`);
+};

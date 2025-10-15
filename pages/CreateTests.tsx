@@ -45,7 +45,7 @@ const CreateTests: React.FC = () => {
             patientId: encounter.patientId,
             requesterId: parseInt(userId, 10),
             encounterId: encounter.id,
-            status: 'active',
+            status: 'ACTIVE',
             priority: 'routine',
             testIds: selectedTests.map(id => parseInt(id, 10)),
         };

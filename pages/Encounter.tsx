@@ -8,7 +8,7 @@ const Encounter: React.FC = () => {
     const patient = location.state?.patient; // Assuming patient object is passed in state
 
     const [startTime, setStartTime] = useState(new Date().toISOString().slice(0, 16));
-    const [status, setStatus] = useState('arrived');
+    const [status, setStatus] = useState('ARRIVED');
     const [encounterClass, setEncounterClass] = useState('AMB');
     const [serviceProviderId, setServiceProviderId] = useState('2'); // Hardcoded for now
     const [referenceDoctor, setReferenceDoctor] = useState('');
@@ -92,10 +92,11 @@ const Encounter: React.FC = () => {
                             onChange={(e) => setStatus(e.target.value)}
                             className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                         >
-                            <option value="arrived">Arrived</option>
-                            <option value="in-progress">In Progress</option>
-                            <option value="finished">Finished</option>
-                            <option value="cancelled">Cancelled</option>
+                            <option value="PLANNED">Planned</option>
+                            <option value="ARRIVED">Arrived</option>
+                            <option value="IN_PROGRESS">In Progress</option>
+                            <option value="FINISHED">Finished</option>
+                            <option value="CANCELLED">Cancelled</option>
                         </select>
                     </div>
                     <div>

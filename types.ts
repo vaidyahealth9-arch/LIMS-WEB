@@ -218,8 +218,10 @@ export interface Encounter {
     mrnId: string;
     referenceDoctor: string;
     date: string;
-    status: 'arrived' | 'in-progress' | 'finished' | 'cancelled';
+    status: 'PLANNED' | 'ARRIVED' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED';
     tests: string[];
+    localEncounterValue?: string;
+    serviceRequestIds?: number[];
 }
 
 export interface ServiceRequest {
@@ -261,4 +263,34 @@ export interface Bill {
     initialPaymentMethod: string;
     initialPaidAmount: number;
     notes: string;
+}
+
+export interface Bill {
+    billId: number;
+    invoiceNumber: string;
+    invoiceDate: string;
+    patientName: string;
+    patientMrn: string;
+    localEncounterId: string;
+    netAmount: number;
+    paidAmount: number;
+    status: 'PAID' | 'PARTIALLY_PAID' | 'DUE' | 'CANCELLED';
+    serviceRequestIds: number[];
+    tests: string[];
+}
+
+export interface BillableTest {
+    testId: number;
+    testName: string;
+    price: number;
+}
+
+export interface BillableServiceRequest {
+    serviceRequestId: number;
+    tests: BillableTest[];
+}
+
+export interface BillableDetails {
+    localEncounterId: string;
+    serviceRequests: BillableServiceRequest[];
 }
