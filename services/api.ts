@@ -1,7 +1,7 @@
 
 import type { Test, OrganizationTest, Unit, SpecimenType, TestAnalyte, ReferenceRange, TestInterpretationRule, Organization, User, Patient, Encounter, ServiceRequest, Specimen, Observation, Bill, PatientRegistrationResponse, BillableDetails } from '../types';
 
-const API_BASE_URL = '/api';
+const API_BASE_URL = process.env.API_URL;
 
 export const login = async (username, password) => {
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
