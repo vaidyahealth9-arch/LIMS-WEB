@@ -1,16 +1,16 @@
 steps:
 # Build the container image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/PROJECT_ID/SERVICE_NAME', '.']
+  args: ['build', '-t', 'gcr.io/halelab-469206/hale-lims-web', '.']
 
 # Push the container image to Container Registry
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/PROJECT_ID/SERVICE_NAME']
+  args: ['push', 'gcr.io/halelab-469206/hale-lims-web']
 
 # Deploy container image to Cloud Run
 - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
   entrypoint: gcloud
-  args: ['run', 'deploy', 'SERVICE_NAME', '--image', 'gcr.io/PROJECT_ID/SERVICE_NAME', '--region', 'REGION', '--platform', 'managed', '--allow-unauthenticated']
+  args: ['run', 'deploy', 'hale-lims-web', '--image', 'gcr.io/halelab-469206/hale-lims-web', '--region', 'asia-south1', '--platform', 'managed', '--allow-unauthenticated', '--port=80']
 
 images:
-- 'gcr.io/PROJECT_ID/SERVICE_NAME'
+- 'gcr.io/halelab-469206/hale-lims-web'
