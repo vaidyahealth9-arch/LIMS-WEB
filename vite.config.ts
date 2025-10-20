@@ -19,7 +19,7 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.API_URL': JSON.stringify(mode === 'production' ? 'https://lims-backend-322945089195.asia-south1.run.app/api' : '/api')
+        'process.env.API_URL': JSON.stringify(mode === 'production' ? 'https://hale-lims-322945089195.asia-south1.run.app/api' : '/api')
       },
       resolve: {
         alias: {
