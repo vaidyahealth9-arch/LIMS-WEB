@@ -14,3 +14,6 @@ steps:
 
 images:
 - 'gcr.io/halelab-469206/hale-lims-web'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
