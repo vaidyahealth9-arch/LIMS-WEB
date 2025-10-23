@@ -29,7 +29,7 @@ export const refreshToken = async () => {
     });
 
     if (!response.ok) {
-        // If refresh fails, logout the user
+        // If refresh fails, logout the user bas
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('organizationId');
