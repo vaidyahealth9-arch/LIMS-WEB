@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { getEnabledTestsForLab, createServiceRequest } from '../services/api';
 import type { OrganizationTest } from '../types';
 import { useNotifications } from '../services/NotificationContext';
+import Barcode from 'react-barcode';
 
 const CreateTests: React.FC = () => {
     const navigate = useNavigate();
@@ -14,17 +15,35 @@ const CreateTests: React.FC = () => {
     const [selectedTests, setSelectedTests] = useState<string[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [createdServiceRequest, setCreatedServiceRequest] = useState<any>(null);
+    const [generatedBarcodes, setGeneratedBarcodes] = useState<Array<{ testName: string; barcode: string }>>([]);
+    const barcodeRef = useRef<HTMLDivElement>(null);
+    const [isLoadingTests, setIsLoadingTests] = useState(true);
 
     useEffect(() => {
         const fetchTests = async () => {
             const orgId = localStorage.getItem('organizationId');
+            console.log('Fetching tests for org:', orgId);
             if (orgId) {
                 try {
+                    setIsLoadingTests(true);
                     const tests = await getEnabledTestsForLab(orgId);
+                    console.log('Available tests loaded:', tests);
                     setAvailableTests(tests);
                 } catch (error) {
                     console.error('Failed to fetch tests:', error);
+                    addNotification({
+                        type: 'error',
+                        title: 'Failed to Load Tests',
+                        message: 'Could not load available tests',
+                        persist: false
+                    });
+                } finally {
+                    setIsLoadingTests(false);
                 }
+            } else {
+                console.error('No organization ID found');
+                setIsLoadingTests(false);
             }
         };
         fetchTests();
@@ -32,6 +51,8 @@ const CreateTests: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        console.log('Submit clicked, selected tests:', selectedTests);
 
         if (selectedTests.length === 0) {
             addNotification({
@@ -58,7 +79,38 @@ const CreateTests: React.FC = () => {
             return;
         }
 
-        console.log("XXX", encounter)
+        console.log("Encounter data:", encounter);
+        console.log("Service request data:", {
+            patientId: encounter.patientId,
+            requesterId: parseInt(userId, 10),
+            encounterId: encounter.id,
+            status: 'ACTIVE',
+            priority: 'routine',
+            testIds: selectedTests.map(id => parseInt(id, 10)),
+        });
+
+        // Validate encounter data
+        if (!encounter.patientId) {
+            addNotification({
+                type: 'error',
+                title: 'Invalid Encounter',
+                message: 'Encounter is missing patient ID',
+                persist: false
+            });
+            setIsLoading(false);
+            return;
+        }
+
+        if (!encounter.id) {
+            addNotification({
+                type: 'error',
+                title: 'Invalid Encounter',
+                message: 'Encounter is missing ID',
+                persist: false
+            });
+            setIsLoading(false);
+            return;
+        }
 
         const serviceRequestData = {
             patientId: encounter.patientId,
@@ -70,20 +122,55 @@ const CreateTests: React.FC = () => {
         };
 
         try {
-            await createServiceRequest(serviceRequestData);
+            console.log('Calling createServiceRequest API...');
+            const result = await createServiceRequest(serviceRequestData);
+            console.log('API response:', result);
+            setCreatedServiceRequest(result);
+            
+            // Generate barcodes for each test
+            const barcodes = selectedTests.map(testId => {
+                const test = availableTests.find(t => String(t.testId) === testId);
+                const timestamp = Date.now();
+                const barcodeValue = `${encounter.mrnId}-${testId}-${timestamp}`;
+                return {
+                    testName: test?.testName || 'Unknown Test',
+                    barcode: barcodeValue
+                };
+            });
+            setGeneratedBarcodes(barcodes);
+            
             addNotification({
                 type: 'success',
                 title: 'Tests Added Successfully',
-                message: `${selectedTests.length} test(s) added to service request`,
+                message: `${selectedTests.length} test(s) added with barcodes generated`,
                 persist: true
             });
-            navigate('/patient-list');
+            
+            // Don't navigate immediately - let user print barcodes
+            // setTimeout(() => {
+            //     navigate('/patient-list');
+            // }, 5000);
         } catch (error) {
             console.error('Failed to create service request:', error);
+            
+            // Get detailed error message
+            let errorMessage = 'Unknown error occurred';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            } else if (typeof error === 'string') {
+                errorMessage = error;
+            }
+            
+            console.error('Error details:', {
+                error,
+                errorMessage,
+                type: typeof error
+            });
+            
             addNotification({
                 type: 'error',
                 title: 'Failed to Add Tests',
-                message: error instanceof Error ? error.message : 'Unknown error occurred',
+                message: errorMessage,
                 persist: true
             });
         } finally {
@@ -116,11 +203,14 @@ const CreateTests: React.FC = () => {
     }
 
     const toggleTestSelection = (testId: string) => {
-        setSelectedTests(prev => 
-            prev.includes(testId) 
+        console.log('Toggling test:', testId, 'Current selection:', selectedTests);
+        setSelectedTests(prev => {
+            const newSelection = prev.includes(testId) 
                 ? prev.filter(id => id !== testId)
-                : [...prev, testId]
-        );
+                : [...prev, testId];
+            console.log('New selection:', newSelection);
+            return newSelection;
+        });
     };
 
     const filteredTests = availableTests.filter(test =>
@@ -145,7 +235,69 @@ const CreateTests: React.FC = () => {
             </div>
 
             <div className="bg-white p-8 rounded-xl shadow-lg max-w-6xl mx-auto">
+                {/* Barcode Display Section */}
+                {generatedBarcodes.length > 0 && (
+                    <div className="mb-8 p-6 border-2 border-emerald-300 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 shadow-sm">
+                        <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center gap-4">
+                                <div className="flex-shrink-0 w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center">
+                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h3 className="text-xl font-bold text-emerald-800">Tests Added Successfully!</h3>
+                                    <p className="text-sm text-emerald-600 mt-1">Barcodes generated for specimen collection</p>
+                                </div>
+                            </div>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => window.print()}
+                                    className="px-4 py-2 bg-white border-2 border-emerald-500 text-emerald-700 font-semibold rounded-lg hover:bg-emerald-50 transition-colors flex items-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                    </svg>
+                                    Print Barcodes
+                                </button>
+                                <button
+                                    onClick={() => navigate('/patient-list')}
+                                    className="px-4 py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
+                                >
+                                    Continue
+                                </button>
+                            </div>
+                        </div>
+                        
+                        {/* Barcodes Grid */}
+                        <div ref={barcodeRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
+                            {generatedBarcodes.map((item, index) => (
+                                <div key={index} className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm print-barcode">
+                                    <div className="text-center mb-2">
+                                        <p className="text-xs font-semibold text-gray-600 mb-1">Patient: {encounter.patientName}</p>
+                                        <p className="text-xs text-gray-500">MRN: {encounter.mrnId}</p>
+                                        <p className="font-bold text-sm text-gray-800 mt-2">{item.testName}</p>
+                                    </div>
+                                    <div className="flex justify-center bg-white p-2 rounded">
+                                        <Barcode 
+                                            value={item.barcode} 
+                                            width={1.5}
+                                            height={50}
+                                            fontSize={10}
+                                            margin={5}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-center text-gray-500 mt-2">
+                                        {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
+                                    </p>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {/* Encounter Details Card */}
+                {generatedBarcodes.length === 0 && (
                 <div className="mb-8 p-6 border-2 border-gray-200 rounded-xl bg-gradient-to-br from-gray-50 to-white">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-teal-500 rounded-full"></div>
@@ -187,7 +339,9 @@ const CreateTests: React.FC = () => {
                         </div>
                     </div>
                 </div>
+                )}
 
+                {generatedBarcodes.length === 0 && (
                 <form onSubmit={handleSubmit}> 
                     {/* Search and Filter */}
                     <div className="mb-6">
@@ -233,7 +387,15 @@ const CreateTests: React.FC = () => {
 
                         {/* Test List */}
                         <div className="border-2 border-gray-200 rounded-lg max-h-96 overflow-y-auto">
-                            {filteredTests.length === 0 ? (
+                            {isLoadingTests ? (
+                                <div className="text-center py-12">
+                                    <svg className="animate-spin h-12 w-12 mx-auto text-cyan-600 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                    </svg>
+                                    <p className="text-gray-600 font-medium">Loading available tests...</p>
+                                </div>
+                            ) : filteredTests.length === 0 ? (
                                 <div className="text-center py-12 text-gray-500">
                                     <svg className="w-16 h-16 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -275,7 +437,18 @@ const CreateTests: React.FC = () => {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="mt-8 pt-6 border-t-2 border-gray-100 flex justify-between items-center">
+                    <div className="mt-8 pt-6 border-t-2 border-gray-100">
+                        {/* Debug Info - Remove in production */}
+                        {selectedTests.length > 0 && (
+                            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
+                                <p className="font-semibold text-blue-800 mb-1">Debug Info:</p>
+                                <p className="text-blue-700">Selected Test IDs: {selectedTests.join(', ')}</p>
+                                <p className="text-blue-700">Encounter ID: {encounter.id}</p>
+                                <p className="text-blue-700">Patient ID: {encounter.patientId}</p>
+                            </div>
+                        )}
+                        
+                        <div className="flex justify-between items-center">
                         <div className="text-sm text-gray-600">
                             <span className="font-semibold">{selectedTests.length}</span> test(s) selected
                         </div>
@@ -305,13 +478,15 @@ const CreateTests: React.FC = () => {
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                                         </svg>
-                                        Add Tests
+                                        Add Tests {selectedTests.length > 0 && `(${selectedTests.length})`}
                                     </>
                                 )}
                             </button>
                         </div>
+                        </div>
                     </div>
                 </form>
+                )}
             </div>
         </div>
     );

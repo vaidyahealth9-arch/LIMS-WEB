@@ -1,0 +1,57 @@
+/* Print styles for barcodes */
+@media print {
+    /* Hide everything except barcodes */
+    body * {
+        visibility: hidden;
+    }
+    
+    .print-barcode, .print-barcode * {
+        visibility: visible;
+    }
+    
+    /* Position barcodes for printing */
+    .print-barcode {
+        position: absolute;
+        left: 0;
+        top: 0;
+        page-break-inside: avoid;
+        page-break-after: always;
+    }
+    
+    /* Print each barcode on a separate label/page */
+    @page {
+        size: 4in 2in; /* Standard label size */
+        margin: 0.25in;
+    }
+}
+
+/* Animation for notifications */
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOut {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+.notification-enter {
+    animation: slideIn 0.3s ease-out;
+}
+
+.notification-exit {
+    animation: slideOut 0.3s ease-in;
+}
