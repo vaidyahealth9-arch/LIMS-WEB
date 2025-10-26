@@ -265,112 +265,127 @@ const PatientRegistration: React.FC = () => {
     };
 
     return (
-        <div className="bg-white p-8 rounded-xl shadow-lg max-w-4xl mx-auto">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-800">{selectedPatient ? 'Update Patient Information' : 'Register New Patient'}</h2>
-                <button onClick={clearForm} className="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 focus:outline-none">
-                    Clear Form
-                </button>
+        <div className="container mx-auto px-4 py-6">
+            {/* Header */}
+            <div className="mb-6 p-6 rounded-xl" style={{ background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)' }}>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h2 className="text-3xl font-bold text-white mb-1">
+                            {selectedPatient ? 'Update Patient Information' : 'Register New Patient'}
+                        </h2>
+                        <p className="text-cyan-50 text-sm">
+                            {selectedPatient ? 'Update existing patient details' : 'Add a new patient to the system'}
+                        </p>
+                    </div>
+                    <button 
+                        onClick={clearForm} 
+                        className="px-5 py-2.5 text-sm font-semibold text-white bg-white/20 backdrop-blur-sm rounded-lg hover:bg-white/30 transition-all duration-200 border border-white/30"
+                    >
+                        Clear Form
+                    </button>
+                </div>
             </div>
 
-            <div className="mb-6 relative">
-                <label htmlFor="search-patient" className="block text-sm font-medium text-gray-700 mb-1">Search Existing Patient</label>
-                <div className="space-y-2">
-                    <div className="flex gap-2">
-                        <input
-                            type="text"
-                            id="search-patient"
-                            placeholder="Search by Phone, Name, UHID, Aadhaar, ABHA number..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                            value={searchQuery}
-                            onChange={handleSearchChange}
-                            onKeyDown={handleKeyDown}
-                        />
+            <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                {/* Search Section */}
+                <div className="mb-6 relative">
+                    <label htmlFor="search-patient" className="block text-sm font-semibold text-gray-700 mb-2">Search Existing Patient</label>
+                    <div className="space-y-3">
+                        <div className="flex gap-2">
+                            <input
+                                type="text"
+                                id="search-patient"
+                                placeholder="Search by Phone, Name, UHID, Aadhaar, ABHA number..."
+                                className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors"
+                                value={searchQuery}
+                                onChange={handleSearchChange}
+                                onKeyDown={handleKeyDown}
+                            />
+                        </div>
+                        <div className="flex gap-2 flex-wrap">
+                            <button
+                                type="button"
+                                onClick={() => handleFilterChange('all')}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                    searchFilter === 'all'
+                                        ? 'bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                                All
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleFilterChange('name')}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                    searchFilter === 'name'
+                                        ? 'bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                                Name
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleFilterChange('phone')}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                    searchFilter === 'phone'
+                                        ? 'bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                                Phone
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleFilterChange('uhid')}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                    searchFilter === 'uhid'
+                                        ? 'bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                                UHID
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleFilterChange('aadhaar')}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                    searchFilter === 'aadhaar'
+                                        ? 'bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                                Aadhaar
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => handleFilterChange('abha')}
+                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                                    searchFilter === 'abha'
+                                        ? 'bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-md'
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`}
+                            >
+                                ABHA
+                            </button>
+                        </div>
                     </div>
-                    <div className="flex gap-2 flex-wrap">
-                        <button
-                            type="button"
-                            onClick={() => handleFilterChange('all')}
-                            className={`px-3 py-1 text-sm rounded-full ${
-                                searchFilter === 'all'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            All
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleFilterChange('name')}
-                            className={`px-3 py-1 text-sm rounded-full ${
-                                searchFilter === 'name'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            Name
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleFilterChange('phone')}
-                            className={`px-3 py-1 text-sm rounded-full ${
-                                searchFilter === 'phone'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            Phone
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleFilterChange('uhid')}
-                            className={`px-3 py-1 text-sm rounded-full ${
-                                searchFilter === 'uhid'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            UHID
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleFilterChange('aadhaar')}
-                            className={`px-3 py-1 text-sm rounded-full ${
-                                searchFilter === 'aadhaar'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            Aadhaar
-                        </button>
-                        <button
-                            type="button"
-                            onClick={() => handleFilterChange('abha')}
-                            className={`px-3 py-1 text-sm rounded-full ${
-                                searchFilter === 'abha'
-                                    ? 'bg-indigo-600 text-white'
-                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                            }`}
-                        >
-                            ABHA
-                        </button>
-                    </div>
-                </div>
                 {searchError && (
-                    <p className="text-sm text-red-600 mt-1">{searchError}</p>
+                    <p className="text-sm text-red-600 mt-2 font-medium">{searchError}</p>
                 )}
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-gray-500 mt-2">
                     Use ↑↓ keys to navigate results, Enter to select, Esc to clear
                 </p>
                 {searchHistory.length > 0 && !searchResults.length && searchQuery.length < 2 && (
-                    <div className="mt-2">
-                        <p className="text-sm font-medium text-gray-700 mb-1">Recent Searches</p>
+                    <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">Recent Searches</p>
                         <div className="flex flex-wrap gap-2">
                             {searchHistory.map((history, index) => (
                                 <button
                                     key={index}
                                     onClick={() => handleHistoryItemClick(history)}
-                                    className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 flex items-center gap-1"
+                                    className="px-3 py-1.5 text-sm bg-white border border-gray-200 text-gray-700 rounded-lg hover:border-cyan-400 hover:bg-cyan-50 transition-colors flex items-center gap-1"
                                 >
                                     <span>{history.query}</span>
                                     <span className="text-xs text-gray-500">({history.filter})</span>
@@ -380,48 +395,48 @@ const PatientRegistration: React.FC = () => {
                     </div>
                 )}
                  {searchResults.length > 0 && (
-                    <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg">
+                    <div className="absolute z-10 w-full bg-white border-2 border-cyan-200 rounded-xl mt-1 shadow-xl">
                         <ul className="max-h-60 overflow-y-auto">
                             {searchResults.map((patient, index) => (
                                 <li 
                                     key={patient.id} 
-                                    className={`px-4 py-3 cursor-pointer ${
+                                    className={`px-4 py-3 cursor-pointer transition-colors ${
                                         index === selectedResultIndex 
-                                            ? 'bg-indigo-100 border-l-4 border-indigo-600' 
-                                            : 'hover:bg-indigo-50'
+                                            ? 'bg-gradient-to-r from-cyan-50 to-teal-50 border-l-4 border-cyan-500' 
+                                            : 'hover:bg-cyan-50/50'
                                     }`}
                                     onClick={() => handlePatientSelect(patient)}
                                     onMouseEnter={() => setSelectedResultIndex(index)}
                                 >
                                     <p className="font-semibold text-gray-800">{patient.firstName} {patient.lastName}</p>
-                                    <p className="text-sm text-gray-600">
-                                        <span className="inline-block mr-3">MRN: {patient.localMrnValue}</span>
+                                    <p className="text-sm text-gray-600 mt-1">
+                                        <span className="inline-block mr-4">📋 MRN: {patient.localMrnValue}</span>
                                         {patient.contactPhone && (
-                                            <span className="inline-block mr-3">Phone: {patient.contactPhone}</span>
+                                            <span className="inline-block mr-4">📞 {patient.contactPhone}</span>
                                         )}
                                         {patient.contactEmail && (
-                                            <span className="inline-block">Email: {patient.contactEmail}</span>
+                                            <span className="inline-block">✉️ {patient.contactEmail}</span>
                                         )}
                                     </p>
                                 </li>
                             ))}
                         </ul>
                         {totalPages > 1 && (
-                            <div className="flex justify-between items-center p-2 border-t border-gray-200">
+                            <div className="flex justify-between items-center p-3 border-t-2 border-gray-100 bg-gray-50">
                                 <button
                                     onClick={handlePreviousPage}
                                     disabled={currentPage === 1}
-                                    className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                                    className="px-4 py-2 text-sm font-semibold text-cyan-700 bg-white border border-cyan-200 rounded-lg hover:bg-cyan-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     Previous
                                 </button>
-                                <span className="text-sm text-gray-600">
+                                <span className="text-sm font-medium text-gray-600">
                                     Page {currentPage} of {totalPages}
                                 </span>
                                 <button
                                     onClick={handleNextPage}
                                     disabled={currentPage === totalPages}
-                                    className="px-3 py-1 text-sm font-medium text-gray-600 bg-gray-100 rounded-lg hover:bg-gray-200 disabled:opacity-50"
+                                    className="px-4 py-2 text-sm font-semibold text-cyan-700 bg-white border border-cyan-200 rounded-lg hover:bg-cyan-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                 >
                                     Next
                                 </button>
@@ -431,13 +446,13 @@ const PatientRegistration: React.FC = () => {
                 )}
             </div>
 
-            <div className="border-t border-gray-200 my-6"></div>
+            <div className="border-t-2 border-gray-100 my-6"></div>
 
             <form onSubmit={(e) => handleSubmit(e)}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                      <div>
-                        <label htmlFor="designation" className="block text-sm font-medium text-gray-700">Designation</label>
-                        <select id="designation" className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        <label htmlFor="designation" className="block text-sm font-semibold text-gray-700 mb-1">Designation</label>
+                        <select id="designation" className="mt-1 block w-full py-2.5 px-3 border-2 border-gray-200 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors">
                             <option>Mr.</option>
                             <option>Mrs.</option>
                             <option>Ms.</option>
@@ -447,76 +462,93 @@ const PatientRegistration: React.FC = () => {
                         </select>
                     </div>
                     <div>
-                        <label htmlFor="first-name" className="block text-sm font-medium text-gray-700">First Name <span className="text-red-500">*</span></label>
-                        <input type="text" id="first-name" required value={firstName} onChange={e => setFirstName(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                        <label htmlFor="first-name" className="block text-sm font-semibold text-gray-700 mb-1">First Name <span className="text-red-500">*</span></label>
+                        <input type="text" id="first-name" required value={firstName} onChange={e => setFirstName(e.target.value)} className="mt-1 w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors" />
                     </div>
                     <div>
-                        <label htmlFor="last-name" className="block text-sm font-medium text-gray-700">Last Name <span className="text-red-500">*</span></label>
-                        <input type="text" id="last-name" required value={lastName} onChange={e => setLastName(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                        <label htmlFor="last-name" className="block text-sm font-semibold text-gray-700 mb-1">Last Name <span className="text-red-500">*</span></label>
+                        <input type="text" id="last-name" required value={lastName} onChange={e => setLastName(e.target.value)} className="mt-1 w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Gender</label>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">Gender</label>
                         <div className="mt-2 flex items-center space-x-4">
-                            <label className="inline-flex items-center"><input type="radio" name="gender" value="male" checked={gender === 'male'} onChange={e => setGender(e.target.value as any)} className="form-radio text-indigo-600" /> <span className="ml-2">Male</span></label>
-                            <label className="inline-flex items-center"><input type="radio" name="gender" value="female" checked={gender === 'female'} onChange={e => setGender(e.target.value as any)} className="form-radio text-indigo-600" /> <span className="ml-2">Female</span></label>
-                            <label className="inline-flex items-center"><input type="radio" name="gender" value="other" checked={gender === 'other'} onChange={e => setGender(e.target.value as any)} className="form-radio text-indigo-600" /> <span className="ml-2">Other</span></label>
+                            <label className="inline-flex items-center"><input type="radio" name="gender" value="male" checked={gender === 'male'} onChange={e => setGender(e.target.value as any)} className="form-radio text-cyan-600 focus:ring-cyan-500" /> <span className="ml-2 text-gray-700">Male</span></label>
+                            <label className="inline-flex items-center"><input type="radio" name="gender" value="female" checked={gender === 'female'} onChange={e => setGender(e.target.value as any)} className="form-radio text-cyan-600 focus:ring-cyan-500" /> <span className="ml-2 text-gray-700">Female</span></label>
+                            <label className="inline-flex items-center"><input type="radio" name="gender" value="other" checked={gender === 'other'} onChange={e => setGender(e.target.value as any)} className="form-radio text-cyan-600 focus:ring-cyan-500" /> <span className="ml-2 text-gray-700">Other</span></label>
                         </div>
                     </div>
                     <div>
-                        <label htmlFor="dob" className="block text-sm font-medium text-gray-700">Date of Birth <span className="text-red-500">*</span></label>
-                        <input type="date" id="dob" required value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                        <label htmlFor="dob" className="block text-sm font-semibold text-gray-700 mb-1">Date of Birth <span className="text-red-500">*</span></label>
+                        <input type="date" id="dob" required value={dateOfBirth} onChange={e => setDateOfBirth(e.target.value)} className="mt-1 w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors" />
                     </div>
                     <div>
-                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone Number <span className="text-red-500">*</span></label>
-                        <input type="tel" id="phone" required value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
-                    </div>
-                                         <div>
-                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email ID <span className="text-red-500">*</span></label>
-                                            <input type="email" id="email" required value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address</label>
-                                            <textarea id="address" rows={2} value={address} onChange={e => setAddress(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500"></textarea>
-                                        </div>                    <div>
-                        <label htmlFor="city" className="block text-sm font-medium text-gray-700">City</label>
-                        <input type="text" id="city" value={city} onChange={e => setCity(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                        <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-1">Phone Number <span className="text-red-500">*</span></label>
+                        <input type="tel" id="phone" required value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors" />
                     </div>
                     <div>
-                        <label htmlFor="state" className="block text-sm font-medium text-gray-700">State</label>
-                        <input type="text" id="state" value={state} onChange={e => setState(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                        <label htmlFor="email" className="block text-sm font-semibold text-gray-700 mb-1">Email ID <span className="text-red-500">*</span></label>
+                        <input type="email" id="email" required value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors" />
+                    </div>
+                    <div className="md:col-span-2">
+                        <label htmlFor="address" className="block text-sm font-semibold text-gray-700 mb-1">Address</label>
+                        <textarea id="address" rows={2} value={address} onChange={e => setAddress(e.target.value)} className="mt-1 w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors"></textarea>
                     </div>
                     <div>
-                        <label htmlFor="postalCode" className="block text-sm font-medium text-gray-700">Postal Code</label>
-                        <input type="text" id="postalCode" value={postalCode} onChange={e => setPostalCode(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                        <label htmlFor="city" className="block text-sm font-semibold text-gray-700 mb-1">City</label>
+                        <input type="text" id="city" value={city} onChange={e => setCity(e.target.value)} className="mt-1 w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors" />
+                    </div>
+                    <div>
+                        <label htmlFor="state" className="block text-sm font-semibold text-gray-700 mb-1">State</label>
+                        <input type="text" id="state" value={state} onChange={e => setState(e.target.value)} className="mt-1 w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors" />
+                    </div>
+                    <div>
+                        <label htmlFor="postalCode" className="block text-sm font-semibold text-gray-700 mb-1">Postal Code</label>
+                        <input type="text" id="postalCode" value={postalCode} onChange={e => setPostalCode(e.target.value)} className="mt-1 w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors" />
                     </div>
 
-                    <div className="md:col-span-2 border-t pt-6">
-                        <h3 className="text-lg font-semibold text-gray-800 mb-2">ABHA Integration</h3>
+                    <div className="md:col-span-2 border-t-2 border-gray-100 pt-6 mt-2">
+                        <div className="flex items-center gap-2 mb-3">
+                            <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-teal-500 rounded-full"></div>
+                            <h3 className="text-lg font-bold text-gray-800">ABHA Integration</h3>
+                        </div>
                         <div className="flex items-end gap-4">
                            <div className="flex-grow">
-                             <label htmlFor="aadhaar" className="block text-sm font-medium text-gray-700">Aadhaar Number (for ABHA creation)</label>
-                             <input type="text" id="aadhaar" value={aadhaar} onChange={e => setAadhaar(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                             <label htmlFor="aadhaar" className="block text-sm font-semibold text-gray-700 mb-1">Aadhaar Number (for ABHA creation)</label>
+                             <input type="text" id="aadhaar" value={aadhaar} onChange={e => setAadhaar(e.target.value)} className="mt-1 w-full px-3 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-colors" />
                            </div>
-                           <button type="button" onClick={handleCheckAbha} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-75">
+                           <button 
+                                type="button" 
+                                onClick={handleCheckAbha} 
+                                className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-cyan-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200"
+                           >
                                 Check ABHA
                            </button>
                         </div>
-                         {abhaStatus === 'loading' && <p className="text-sm text-blue-600 mt-2">Checking ABHA status...</p>}
-                         {abhaStatus === 'success' && <p className="text-sm text-green-600 mt-2">✓ ABHA ID successfully linked.</p>}
-                         {abhaStatus === 'error' && <p className="text-sm text-red-600 mt-2">✗ ABHA verification failed. Please check the details or create a new ABHA ID.</p>}
+                         {abhaStatus === 'loading' && <p className="text-sm text-cyan-600 mt-3 font-medium">🔄 Checking ABHA status...</p>}
+                         {abhaStatus === 'success' && <p className="text-sm text-emerald-600 mt-3 font-medium">✓ ABHA ID successfully linked.</p>}
+                         {abhaStatus === 'error' && <p className="text-sm text-red-600 mt-3 font-medium">✗ ABHA verification failed. Please check the details or create a new ABHA ID.</p>}
                     </div>
 
                 </div>
                 
                 <div className="mt-8 flex justify-end space-x-4">
-                    <button type="submit" className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 focus:outline-none">
+                    <button 
+                        type="submit" 
+                        className="px-6 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all duration-200"
+                    >
                         {selectedPatient ? 'Update' : 'Register'}
                     </button>
-                    <button type="button" onClick={(e) => handleSubmit(e, true)} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75">
-                        {selectedPatient ? 'Update & Create Encounter' : 'Register & Create Encounter'} →
+                    <button 
+                        type="button" 
+                        onClick={(e) => handleSubmit(e, true)} 
+                        className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-cyan-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200 flex items-center gap-2"
+                    >
+                        {selectedPatient ? 'Update & Create Encounter' : 'Register & Create Encounter'}
+                        <span>→</span>
                     </button>
                 </div>
             </form>
+            </div>
         </div>
     );
 };

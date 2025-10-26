@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
+import { useNotifications } from '../services/NotificationContext';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 export function LoginPage() {
@@ -12,6 +13,7 @@ export function LoginPage() {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { addNotification } = useNotifications();
 
   // Handle window resize
   useEffect(() => {
@@ -29,9 +31,22 @@ export function LoginPage() {
     setIsLoading(true);
     try {
       await login(username, password);
+      // Navigate first, then show notification after a brief delay
       navigate('/');
+      setTimeout(() => {
+        addNotification({
+          type: 'success',
+          title: 'Login Successful',
+          message: `Welcome back, ${username}!`
+        });
+      }, 100);
     } catch (err) {
       setError('Failed to login. Check username or password.');
+      addNotification({
+        type: 'error',
+        title: 'Login Failed',
+        message: 'Invalid username or password'
+      });
       setIsLoading(false);
     }
   };
