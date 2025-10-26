@@ -4,7 +4,7 @@ import { useNotifications } from '../services/NotificationContext';
 const Header: React.FC<{ user: { username: string, roles: string[], organizationName: string } | null, handleLogout: Function }> = ({ user, handleLogout }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
     const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-    const [notificationHistory, setNotificationHistory] = useState<Array<{ title: string; message?: string; type: string; timestamp: Date }>>([]);
+    const [notificationHistory, setNotificationHistory] = useState<Array<{ title: string; message?: string; type: string; timestamp: Date; read: boolean }>>([]);
     const dropdownRef = useRef<HTMLDivElement>(null);
     const notificationRef = useRef<HTMLDivElement>(null);
     const { notifications } = useNotifications();
@@ -13,15 +13,19 @@ const Header: React.FC<{ user: { username: string, roles: string[], organization
     useEffect(() => {
         if (notifications.length > 0) {
             const latestNotification = notifications[notifications.length - 1];
-            setNotificationHistory(prev => [
-                {
-                    title: latestNotification.title,
-                    message: latestNotification.message,
-                    type: latestNotification.type,
-                    timestamp: new Date()
-                },
-                ...prev
-            ].slice(0, 10)); // Keep only last 10 notifications
+            // Only add to history if persist is true (default to false for validation errors)
+            if (latestNotification.persist !== false) {
+                setNotificationHistory(prev => [
+                    {
+                        title: latestNotification.title,
+                        message: latestNotification.message,
+                        type: latestNotification.type,
+                        timestamp: new Date(),
+                        read: false
+                    },
+                    ...prev
+                ].slice(0, 10)); // Keep only last 10 notifications
+            }
         }
     }, [notifications]);
 
@@ -61,8 +65,10 @@ const Header: React.FC<{ user: { username: string, roles: string[], organization
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                             </svg>
-                            {notificationHistory.length > 0 && (
-                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
+                            {notificationHistory.filter(n => !n.read).length > 0 && (
+                                <span className="absolute top-1 right-1 flex items-center justify-center w-5 h-5 bg-red-500 text-white text-xs font-bold rounded-full border-2 border-white">
+                                    {notificationHistory.filter(n => !n.read).length}
+                                </span>
                             )}
                         </button>
 
@@ -94,7 +100,7 @@ const Header: React.FC<{ user: { username: string, roles: string[], organization
                                             {notificationHistory.map((notif, index) => (
                                                 <div
                                                     key={index}
-                                                    className="px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                                                    className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${!notif.read ? 'bg-cyan-50/30' : ''}`}
                                                 >
                                                     <div className="flex items-start gap-3">
                                                         <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
@@ -117,7 +123,12 @@ const Header: React.FC<{ user: { username: string, roles: string[], organization
                                                             )}
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-semibold text-gray-900 truncate">{notif.title}</p>
+                                                            <div className="flex items-start justify-between gap-2">
+                                                                <p className="text-sm font-semibold text-gray-900 truncate">{notif.title}</p>
+                                                                {!notif.read && (
+                                                                    <span className="flex-shrink-0 w-2 h-2 bg-cyan-500 rounded-full mt-1"></span>
+                                                                )}
+                                                            </div>
                                                             {notif.message && (
                                                                 <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">{notif.message}</p>
                                                             )}

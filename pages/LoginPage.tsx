@@ -37,7 +37,8 @@ export function LoginPage() {
         addNotification({
           type: 'success',
           title: 'Login Successful',
-          message: `Welcome back, ${username}!`
+          message: `Welcome back, ${username}!`,
+          persist: true
         });
       }, 100);
     } catch (err) {
@@ -45,7 +46,8 @@ export function LoginPage() {
       addNotification({
         type: 'error',
         title: 'Login Failed',
-        message: 'Invalid username or password'
+        message: 'Invalid username or password',
+        persist: false
       });
       setIsLoading(false);
     }

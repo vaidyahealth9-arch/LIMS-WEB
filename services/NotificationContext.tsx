@@ -9,6 +9,7 @@ export interface Notification {
     title: string;
     message?: string;
     duration?: number;
+    persist?: boolean; // Whether to store in notification history
 }
 
 interface NotificationContextType {
