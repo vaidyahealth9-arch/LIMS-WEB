@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { registerPatient, searchPatients } from '../services/api';
 import type { PatientRegistrationResponse } from '../types';
+import debounce from 'lodash/debounce';
+
+type SearchFilter = 'all' | 'name' | 'phone' | 'uhid' | 'aadhaar' | 'abha';
+
+interface SearchHistory {
+    query: string;
+    filter: SearchFilter;
+    timestamp: number;
+}
 
 const PatientRegistration: React.FC = () => {
     const navigate = useNavigate();
@@ -20,13 +29,32 @@ const PatientRegistration: React.FC = () => {
     const [aadhaar, setAadhaar] = useState('');
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchFilter, setSearchFilter] = useState<SearchFilter>('all');
     const [searchResults, setSearchResults] = useState<PatientRegistrationResponse[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [selectedPatient, setSelectedPatient] = useState<PatientRegistrationResponse | null>(null);
+    const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
+    const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
+    const [searchError, setSearchError] = useState<string | null>(null);
     
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const pageSize = 5;
+
+    // Load search history from localStorage on component mount
+    useEffect(() => {
+        const savedHistory = localStorage.getItem('patientSearchHistory');
+        if (savedHistory) {
+            setSearchHistory(JSON.parse(savedHistory));
+        }
+    }, []);
+
+    // Save search history to localStorage when it changes
+    useEffect(() => {
+        if (searchHistory.length > 0) {
+            localStorage.setItem('patientSearchHistory', JSON.stringify(searchHistory.slice(0, 10)));
+        }
+    }, [searchHistory]);
 
     const handleCheckAbha = () => {
         setAbhaStatus('loading');
@@ -73,49 +101,121 @@ const PatientRegistration: React.FC = () => {
         setSearchQuery(`${patient.firstName} ${patient.lastName} (${patient.localMrnValue})`);
     };
 
-    const performSearch = async (query: string, page: number) => {
-        if (query.length < 3) {
+    const performSearch = async (query: string, filter: SearchFilter, page: number) => {
+        if (query.length < 2) {  // Reduced minimum length to 2 characters
             setSearchResults([]);
             setTotalPages(0);
+            setSearchError(null);
             return;
         }
         setIsSearching(true);
+        setSearchError(null);
+        
         try {
             const orgId = localStorage.getItem('organizationId');
             if (!orgId) {
                 throw new Error('Organization ID not found');
             }
+
+            // Add filter to query params
+            const queryParams = new URLSearchParams({
+                query,
+                filter,
+                page: String(page - 1),
+                size: String(pageSize)
+            });
+
             const response = await searchPatients(orgId, query, page - 1, pageSize);
+            
+            // Add to search history
+            const newHistoryEntry = {
+                query,
+                filter,
+                timestamp: Date.now()
+            };
+            setSearchHistory(prev => [newHistoryEntry, ...prev.filter(h => 
+                h.query !== query || h.filter !== filter
+            ).slice(0, 9)]);
+
             setSearchResults(response.content);
             setTotalPages(response.totalPages);
             setCurrentPage(page);
+            setSelectedResultIndex(-1);
         } catch (error) {
             console.error('Patient search failed:', error);
             setSearchResults([]);
             setTotalPages(0);
+            setSearchError(error instanceof Error ? error.message : 'Search failed. Please try again.');
         } finally {
             setIsSearching(false);
         }
     };
 
-    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(e.target.value);
+    // Debounced search function
+    const debouncedSearch = useCallback(
+        debounce((query: string, filter: SearchFilter) => {
+            performSearch(query, filter, 1);
+        }, 300),
+        []
+    );
+
+    // Handle keyboard navigation
+    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (searchResults.length === 0) return;
+
+        switch (e.key) {
+            case 'ArrowDown':
+                e.preventDefault();
+                setSelectedResultIndex(prev => 
+                    prev < searchResults.length - 1 ? prev + 1 : prev
+                );
+                break;
+            case 'ArrowUp':
+                e.preventDefault();
+                setSelectedResultIndex(prev => prev > 0 ? prev - 1 : -1);
+                break;
+            case 'Enter':
+                e.preventDefault();
+                if (selectedResultIndex >= 0 && searchResults[selectedResultIndex]) {
+                    handlePatientSelect(searchResults[selectedResultIndex]);
+                }
+                break;
+            case 'Escape':
+                e.preventDefault();
+                setSearchResults([]);
+                setSelectedResultIndex(-1);
+                break;
+        }
     };
 
-    const handleSearchClick = () => {
-        performSearch(searchQuery, 1);
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value);
+        debouncedSearch(e.target.value, searchFilter);
+    };
+
+    const handleFilterChange = (filter: SearchFilter) => {
+        setSearchFilter(filter);
+        if (searchQuery.length >= 2) {
+            debouncedSearch(searchQuery, filter);
+        }
     };
 
     const handlePreviousPage = () => {
         if (currentPage > 1) {
-            performSearch(searchQuery, currentPage - 1);
+            performSearch(searchQuery, searchFilter, currentPage - 1);
         }
     };
 
     const handleNextPage = () => {
         if (currentPage < totalPages) {
-            performSearch(searchQuery, currentPage + 1);
+            performSearch(searchQuery, searchFilter, currentPage + 1);
         }
+    };
+
+    const handleHistoryItemClick = (historyItem: SearchHistory) => {
+        setSearchQuery(historyItem.query);
+        setSearchFilter(historyItem.filter);
+        performSearch(historyItem.query, historyItem.filter, 1);
     };
 
     const handleSubmit = async (e: React.FormEvent, goToEncounter = false) => {
@@ -175,36 +275,134 @@ const PatientRegistration: React.FC = () => {
 
             <div className="mb-6 relative">
                 <label htmlFor="search-patient" className="block text-sm font-medium text-gray-700 mb-1">Search Existing Patient</label>
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        id="search-patient"
-                        placeholder="Search by Phone, Name, UHID, Aadhaar, ABHA number..."
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
-                        value={searchQuery}
-                        onChange={handleSearchChange}
-                    />
-                    <button
-                        type="button"
-                        onClick={handleSearchClick}
-                        className="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-opacity-75"
-                        disabled={isSearching}
-                    >
-                        {isSearching ? '...' : 'Search'}
-                    </button>
+                <div className="space-y-2">
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            id="search-patient"
+                            placeholder="Search by Phone, Name, UHID, Aadhaar, ABHA number..."
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                            value={searchQuery}
+                            onChange={handleSearchChange}
+                            onKeyDown={handleKeyDown}
+                        />
+                    </div>
+                    <div className="flex gap-2 flex-wrap">
+                        <button
+                            type="button"
+                            onClick={() => handleFilterChange('all')}
+                            className={`px-3 py-1 text-sm rounded-full ${
+                                searchFilter === 'all'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                            All
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFilterChange('name')}
+                            className={`px-3 py-1 text-sm rounded-full ${
+                                searchFilter === 'name'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                            Name
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFilterChange('phone')}
+                            className={`px-3 py-1 text-sm rounded-full ${
+                                searchFilter === 'phone'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                            Phone
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFilterChange('uhid')}
+                            className={`px-3 py-1 text-sm rounded-full ${
+                                searchFilter === 'uhid'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                            UHID
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFilterChange('aadhaar')}
+                            className={`px-3 py-1 text-sm rounded-full ${
+                                searchFilter === 'aadhaar'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                            Aadhaar
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => handleFilterChange('abha')}
+                            className={`px-3 py-1 text-sm rounded-full ${
+                                searchFilter === 'abha'
+                                    ? 'bg-indigo-600 text-white'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                            }`}
+                        >
+                            ABHA
+                        </button>
+                    </div>
                 </div>
-                 <p className="text-xs text-gray-500 mt-1">Implements substring, fuzzy search, and autocomplete.</p>
+                {searchError && (
+                    <p className="text-sm text-red-600 mt-1">{searchError}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                    Use ↑↓ keys to navigate results, Enter to select, Esc to clear
+                </p>
+                {searchHistory.length > 0 && !searchResults.length && searchQuery.length < 2 && (
+                    <div className="mt-2">
+                        <p className="text-sm font-medium text-gray-700 mb-1">Recent Searches</p>
+                        <div className="flex flex-wrap gap-2">
+                            {searchHistory.map((history, index) => (
+                                <button
+                                    key={index}
+                                    onClick={() => handleHistoryItemClick(history)}
+                                    className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 flex items-center gap-1"
+                                >
+                                    <span>{history.query}</span>
+                                    <span className="text-xs text-gray-500">({history.filter})</span>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                )}
                  {searchResults.length > 0 && (
                     <div className="absolute z-10 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg">
                         <ul className="max-h-60 overflow-y-auto">
-                            {searchResults.map(patient => (
+                            {searchResults.map((patient, index) => (
                                 <li 
                                     key={patient.id} 
-                                    className="px-4 py-3 cursor-pointer hover:bg-indigo-50"
+                                    className={`px-4 py-3 cursor-pointer ${
+                                        index === selectedResultIndex 
+                                            ? 'bg-indigo-100 border-l-4 border-indigo-600' 
+                                            : 'hover:bg-indigo-50'
+                                    }`}
                                     onClick={() => handlePatientSelect(patient)}
+                                    onMouseEnter={() => setSelectedResultIndex(index)}
                                 >
                                     <p className="font-semibold text-gray-800">{patient.firstName} {patient.lastName}</p>
-                                    <p className="text-sm text-gray-600">MRN: {patient.localMrnValue} &bull; Phone: {patient.contactPhone}</p>
+                                    <p className="text-sm text-gray-600">
+                                        <span className="inline-block mr-3">MRN: {patient.localMrnValue}</span>
+                                        {patient.contactPhone && (
+                                            <span className="inline-block mr-3">Phone: {patient.contactPhone}</span>
+                                        )}
+                                        {patient.contactEmail && (
+                                            <span className="inline-block">Email: {patient.contactEmail}</span>
+                                        )}
+                                    </p>
                                 </li>
                             ))}
                         </ul>
@@ -273,8 +471,8 @@ const PatientRegistration: React.FC = () => {
                         <input type="tel" id="phone" required value={phone} onChange={e => setPhone(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
                     </div>
                                          <div>
-                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email ID</label>
-                                            <input type="email" id="email" value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
+                                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email ID <span className="text-red-500">*</span></label>
+                                            <input type="email" id="email" required value={email} onChange={e => setEmail(e.target.value)} className="mt-1 w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" />
                                         </div>
                                         <div className="md:col-span-2">
                                             <label htmlFor="address" className="block text-sm font-medium text-gray-700">Address</label>

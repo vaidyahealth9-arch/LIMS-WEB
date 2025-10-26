@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { JSX } from 'react';
 import { NavLink } from 'react-router-dom';
 import { navLinks } from '../constants';
 
@@ -19,7 +19,7 @@ const Icon: React.FC<{ name: string }> = ({ name }) => {
 
 const Sidebar: React.FC = () => {
     return (
-        <aside className="w-64 flex-shrink-0 bg-white shadow-md">
+        <aside className="w-80 flex-shrink-0 bg-white shadow-md">
             <div className="flex items-center justify-center h-20 border-b">
                 <h1 className="text-2xl font-bold text-indigo-600">Next-Gen LIMS</h1>
             </div>
@@ -30,7 +30,7 @@ const Sidebar: React.FC = () => {
                             <NavLink
                                 to={link.path}
                                 className={({ isActive }) =>
-                                    `flex items-center p-2 text-base font-normal rounded-lg transition-colors duration-150 ease-in-out ${
+                                    `flex items-center p-2 text-base font-normal rounded-lg transition-colors duration-150 ease-in-out whitespace-nowrap ${
                                         isActive
                                             ? 'bg-indigo-100 text-indigo-600'
                                             : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
@@ -39,6 +39,14 @@ const Sidebar: React.FC = () => {
                             >
                                 <Icon name={link.icon} />
                                 <span className="ml-3">{link.name}</span>
+                                {(link.path === '/' || 
+                                  link.path === '/lab-management' || 
+                                  link.path === '/iris' || 
+                                  link.path === '/user-management') && (
+                                    <span className="ml-2 px-2 py-0.5 text-xs font-medium bg-red-100 text-red-600 rounded-full">
+                                        in progress
+                                    </span>
+                                )}
                             </NavLink>
                         </li>
                     ))}

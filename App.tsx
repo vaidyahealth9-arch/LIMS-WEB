@@ -13,8 +13,10 @@ import IrisWorklist from './pages/IrisWorklist';
 import Encounter from './pages/Encounter';
 import CreateTests from './pages/CreateTests';
 import { AuthProvider, useAuth } from './services/AuthContext';
+import { NotificationProvider } from './services/NotificationContext';
 import { LoginPage } from './pages/LoginPage';
 import PrivateRoute from './components/PrivateRoute';
+import NotificationPanel from './components/NotificationPanel';
 
 const MainLayout = () => {
     const { user, logout } = useAuth();
@@ -45,14 +47,17 @@ const MainLayout = () => {
 const App: React.FC = () => {
     return (
         <AuthProvider>
-            <HashRouter>
-                <Routes>
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route element={<PrivateRoute />}>
-                        <Route path="/*" element={<MainLayout />} />
-                    </Route>
-                </Routes>
-            </HashRouter>
+            <NotificationProvider>
+                <HashRouter>
+                    <NotificationPanel />
+                    <Routes>
+                        <Route path="/login" element={<LoginPage />} />
+                        <Route element={<PrivateRoute />}>
+                            <Route path="/*" element={<MainLayout />} />
+                        </Route>
+                    </Routes>
+                </HashRouter>
+            </NotificationProvider>
         </AuthProvider>
     );
 };

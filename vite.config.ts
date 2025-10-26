@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
         proxy: {
           '/api': {
-            target: 'http://localhost:8080',
+            target: 'https://hale-lims-322945089195.asia-south1.run.app',  // Your backend API URL
             changeOrigin: true,
           },
         },
