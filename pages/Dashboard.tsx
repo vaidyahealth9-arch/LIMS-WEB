@@ -3,11 +3,11 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 const kpiData = [
-    { title: 'New Patients Today', value: '45', change: '+6%', icon: 'user-plus', color: 'blue' },
-    { title: 'ABHA Linked', value: '67%', change: '+4%', icon: 'link', color: 'green' },
-    { title: 'Revenue Today', value: '₹50,000', change: '+5%', icon: 'rupee', color: 'yellow' },
-    { title: 'Invoices Today', value: '120', change: '', icon: 'invoice', color: 'indigo' },
-    { title: 'Pending Entries', value: '8', change: '-2', icon: 'beaker', color: 'red' },
+    { title: 'New Patients Today', value: '45', change: '+6%', icon: 'user-plus', color: 'cyan' },
+    { title: 'ABHA Linked', value: '67%', change: '+4%', icon: 'link', color: 'teal' },
+    { title: 'Revenue Today', value: '₹50,000', change: '+5%', icon: 'rupee', color: 'emerald' },
+    { title: 'Invoices Today', value: '120', change: '', icon: 'invoice', color: 'sky' },
+    { title: 'Pending Entries', value: '8', change: '-2', icon: 'beaker', color: 'slate' },
 ];
 
 const revenueData = [
@@ -40,24 +40,24 @@ const Icon: React.FC<{ name: string, className: string }> = ({ name, className }
 }
 
 const KPICard: React.FC<{ title: string, value: string, change: string, icon: string, color: string }> = ({ title, value, change, icon, color }) => {
-    const colors = {
-        blue: 'from-blue-500 to-blue-400',
-        green: 'from-green-500 to-green-400',
-        yellow: 'from-yellow-500 to-yellow-400',
-        indigo: 'from-indigo-500 to-indigo-400',
-        red: 'from-red-500 to-red-400',
+    const colors: { [key: string]: string } = {
+        cyan: 'from-cyan-500 to-cyan-600',
+        teal: 'from-teal-500 to-teal-600',
+        emerald: 'from-emerald-500 to-emerald-600',
+        sky: 'from-sky-500 to-sky-600',
+        slate: 'from-slate-500 to-slate-600',
     };
-    const changeColor = change.startsWith('+') ? 'text-green-300' : 'text-red-300';
+    const changeColor = change.startsWith('+') ? 'text-cyan-100' : change.startsWith('-') ? 'text-red-200' : '';
 
     return (
-        <div className={`bg-gradient-to-br ${colors[color]} text-white p-5 rounded-lg shadow-md flex justify-between items-center`}>
+        <div className={`bg-gradient-to-br ${colors[color]} text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex justify-between items-center border border-white/20`}>
             <div>
-                <p className="text-sm font-medium uppercase tracking-wider">{title}</p>
-                <p className="text-3xl font-bold">{value}</p>
-                {change && <p className={`text-xs ${changeColor}`}>{change} vs prev period</p>}
+                <p className="text-xs font-semibold uppercase tracking-wider opacity-90 mb-1">{title}</p>
+                <p className="text-3xl font-bold mb-1">{value}</p>
+                {change && <p className={`text-sm font-medium ${changeColor}`}>{change} vs prev period</p>}
             </div>
-            <div className="bg-white bg-opacity-20 p-3 rounded-full">
-                <Icon name={icon} className="w-7 h-7" />
+            <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl">
+                <Icon name={icon} className="w-8 h-8" />
             </div>
         </div>
     );
@@ -65,37 +65,65 @@ const KPICard: React.FC<{ title: string, value: string, change: string, icon: st
 
 const Dashboard: React.FC = () => {
     return (
-        <div className="container mx-auto">
-            <h2 className="text-3xl font-semibold text-gray-700 mb-6">Operational Dashboard</h2>
+        <div className="container mx-auto px-4 py-6">
+            {/* Header */}
+            <div className="mb-8">
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent mb-2">
+                    Operational Dashboard
+                </h2>
+                <p className="text-gray-600 text-sm">Real-time insights and analytics for your laboratory</p>
+            </div>
 
+            {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
                 {kpiData.map(item => <KPICard key={item.title} {...item} />)}
             </div>
             
+            {/* Charts */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-xl font-semibold mb-4 text-gray-700">Weekly Revenue Trends</h3>
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-teal-500 rounded-full"></span>
+                        Weekly Revenue Trends
+                    </h3>
                     <ResponsiveContainer width="100%" height={300}>
                         <LineChart data={revenueData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: '12px' }} />
+                            <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+                            <Tooltip 
+                                contentStyle={{ 
+                                    backgroundColor: 'white', 
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }} 
+                            />
                             <Legend />
-                            <Line type="monotone" dataKey="Revenue" stroke="#8884d8" activeDot={{ r: 8 }} />
+                            <Line type="monotone" dataKey="Revenue" stroke="#0891b2" strokeWidth={3} activeDot={{ r: 6, fill: '#0e7490' }} />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="bg-white p-6 rounded-lg shadow-md">
-                    <h3 className="text-xl font-semibold mb-4 text-gray-700">Average Turn-Around Time (TAT) in Hours</h3>
+                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                        <span className="w-1 h-6 bg-gradient-to-b from-teal-500 to-emerald-500 rounded-full"></span>
+                        Average Turn-Around Time (TAT) in Hours
+                    </h3>
                      <ResponsiveContainer width="100%" height={300}>
                         <BarChart data={tatData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="name" />
-                            <YAxis />
-                            <Tooltip />
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: '12px' }} />
+                            <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+                            <Tooltip 
+                                contentStyle={{ 
+                                    backgroundColor: 'white', 
+                                    border: '1px solid #e5e7eb',
+                                    borderRadius: '8px',
+                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                }} 
+                            />
                             <Legend />
-                            <Bar dataKey="TAT" fill="#82ca9d" />
+                            <Bar dataKey="TAT" fill="#14b8a6" radius={[8, 8, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </div>

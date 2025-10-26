@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { JSX } from 'react';
 import { NavLink } from 'react-router-dom';
 import { navLinks } from '../constants';
 
@@ -19,26 +19,45 @@ const Icon: React.FC<{ name: string }> = ({ name }) => {
 
 const Sidebar: React.FC = () => {
     return (
-        <aside className="w-64 flex-shrink-0 bg-white shadow-md">
-            <div className="flex items-center justify-center h-20 border-b">
-                <h1 className="text-2xl font-bold text-indigo-600">Next-Gen LIMS</h1>
+        <aside className="w-80 flex-shrink-0 shadow-lg" style={{ background: 'linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%)' }}>
+            <div className="flex items-center h-20 px-6 gap-3" style={{ 
+                background: 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+            }}>
+                <img 
+                    src="/images/haleonelogo.png" 
+                    alt="HaleOne LIMS" 
+                    className="h-14 w-auto object-contain"
+                />
+                <div className="flex flex-col">
+                    <h1 className="text-xl font-bold text-white tracking-tight leading-tight">Next-Gen</h1>
+                    <span className="text-sm font-semibold text-cyan-100 tracking-wide">LIMS</span>
+                </div>
             </div>
-            <nav className="mt-4">
-                <ul>
+            <nav className="mt-6 px-3">
+                <ul className="space-y-1">
                     {navLinks.map((link) => (
-                        <li key={link.name} className="px-4 py-1">
+                        <li key={link.name}>
                             <NavLink
                                 to={link.path}
                                 className={({ isActive }) =>
-                                    `flex items-center p-2 text-base font-normal rounded-lg transition-colors duration-150 ease-in-out ${
+                                    `flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ease-in-out whitespace-nowrap ${
                                         isActive
-                                            ? 'bg-indigo-100 text-indigo-600'
-                                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                                            ? 'bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-md shadow-cyan-500/30'
+                                            : 'text-gray-700 hover:bg-cyan-50 hover:text-cyan-700'
                                     }`
                                 }
                             >
                                 <Icon name={link.icon} />
-                                <span className="ml-3">{link.name}</span>
+                                <span className="ml-3 flex-1">{link.name}</span>
+                                {(link.path === '/' || 
+                                  link.path === '/lab-management' || 
+                                  link.path === '/iris' || 
+                                  link.path === '/user-management') && (
+                                    <span className="ml-2 px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full border border-amber-200">
+                                        WIP
+                                    </span>
+                                )}
                             </NavLink>
                         </li>
                     ))}

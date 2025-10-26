@@ -256,27 +256,21 @@ export interface Observation {
 }
 
 export interface Bill {
-    id: string;
-    encounterId: string;
-    serviceRequestIds: string[];
-    discountPercentage: number;
-    initialPaymentMethod: string;
-    initialPaidAmount: number;
-    notes: string;
-}
-
-export interface Bill {
     billId: number;
     invoiceNumber: string;
     invoiceDate: string;
     patientName: string;
     patientMrn: string;
     localEncounterId: string;
+    totalAmount: number;
     netAmount: number;
     paidAmount: number;
+    discountPercentage: number;
     status: 'PAID' | 'PARTIALLY_PAID' | 'DUE' | 'CANCELLED';
     serviceRequestIds: number[];
     tests: string[];
+    notes?: string;
+    dueDate?: string;
 }
 
 export interface BillableTest {
@@ -293,4 +287,12 @@ export interface BillableServiceRequest {
 export interface BillableDetails {
     localEncounterId: string;
     serviceRequests: BillableServiceRequest[];
+}
+
+export interface Paginated<T> {
+    content: T[];
+    totalPages: number;
+    totalElements: number;
+    size: number;
+    number: number;
 }
