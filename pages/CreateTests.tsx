@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getEnabledTestsForLab, createServiceRequest } from '../services/api';
-import type { OrganizationTest } from '../types';
+import { getEnabledTestsForLab, createServiceRequest, getEncounterById } from '../services/api';
+import type { OrganizationTest, Encounter } from '../types';
 import { useNotifications } from '../services/NotificationContext';
 import Barcode from 'react-barcode';
 
 const CreateTests: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
-    const encounter = location.state?.encounter;
+    const encounterFromState = location.state?.encounter;
     const { addNotification } = useNotifications();
 
     const [availableTests, setAvailableTests] = useState<OrganizationTest[]>([]);
@@ -19,6 +19,29 @@ const CreateTests: React.FC = () => {
     const [generatedBarcodes, setGeneratedBarcodes] = useState<Array<{ testName: string; barcode: string }>>([]);
     const barcodeRef = useRef<HTMLDivElement>(null);
     const [isLoadingTests, setIsLoadingTests] = useState(true);
+    const [encounter, setEncounter] = useState<Encounter | null>(encounterFromState);
+    const [isLoadingEncounter, setIsLoadingEncounter] = useState(false);
+
+    // Fetch full encounter details to ensure we have patientId
+    useEffect(() => {
+        const fetchEncounterDetails = async () => {
+            if (encounterFromState && encounterFromState.id) {
+                try {
+                    setIsLoadingEncounter(true);
+                    const fullEncounter = await getEncounterById(encounterFromState.id.toString());
+                    console.log('Full encounter details:', fullEncounter);
+                    setEncounter(fullEncounter);
+                } catch (error) {
+                    console.error('Failed to fetch encounter details:', error);
+                    // Fallback to state encounter if fetch fails
+                    setEncounter(encounterFromState);
+                } finally {
+                    setIsLoadingEncounter(false);
+                }
+            }
+        };
+        fetchEncounterDetails();
+    }, [encounterFromState]);
 
     useEffect(() => {
         const fetchTests = async () => {
@@ -178,31 +201,46 @@ const CreateTests: React.FC = () => {
         }
     };
 
-    if (!encounter) {
+    if (!encounter || isLoadingEncounter) {
         return (
             <div className="container mx-auto px-4 py-6">
                 <div className="bg-white p-8 rounded-xl shadow-lg max-w-2xl mx-auto text-center">
-                    <div className="mb-6">
-                        <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                            <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
+                    {isLoadingEncounter ? (
+                        <div className="mb-6">
+                            <div className="w-20 h-20 bg-cyan-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <svg className="animate-spin h-10 w-10 text-cyan-600" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-800 mb-2">Loading Encounter Details...</h2>
+                            <p className="text-gray-600">Please wait while we fetch the encounter information.</p>
                         </div>
-                        <h2 className="text-2xl font-bold text-gray-800 mb-2">No Encounter Selected</h2>
-                        <p className="text-gray-600">Please select an encounter before creating tests.</p>
-                    </div>
-                    <button
-                        onClick={() => navigate('/patient-list')}
-                        className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-cyan-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200"
-                    >
-                        Go to Patient List
-                    </button>
+                    ) : (
+                        <>
+                            <div className="mb-6">
+                                <div className="w-20 h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg className="w-10 h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-800 mb-2">No Encounter Selected</h2>
+                                <p className="text-gray-600">Please select an encounter before creating tests.</p>
+                            </div>
+                            <button
+                                onClick={() => navigate('/patient-list')}
+                                className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-cyan-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200"
+                            >
+                                Go to Patient List
+                            </button>
+                        </>
+                    )}
                 </div>
             </div>
         );
     }
 
-    const toggleTestSelection = (testId: string) => {
+    const toggleTest = (testId: string) => {
         console.log('Toggling test:', testId, 'Current selection:', selectedTests);
         setSelectedTests(prev => {
             const newSelection = prev.includes(testId) 
@@ -415,7 +453,7 @@ const CreateTests: React.FC = () => {
                                             <input
                                                 type="checkbox"
                                                 checked={selectedTests.includes(String(test.testId))}
-                                                onChange={() => toggleTestSelection(String(test.testId))}
+                                                onChange={() => toggleTest(String(test.testId))}
                                                 className="w-5 h-5 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500 focus:ring-2"
                                             />
                                             <div className="flex-1">
