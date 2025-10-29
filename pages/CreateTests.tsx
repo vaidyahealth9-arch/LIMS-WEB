@@ -151,13 +151,10 @@ const CreateTests: React.FC = () => {
             setCreatedServiceRequest(result);
             
             // Generate barcodes for each test
-            const barcodes = selectedTests.map(testId => {
-                const test = availableTests.find(t => String(t.testId) === testId);
-                const timestamp = Date.now();
-                const barcodeValue = `${encounter.mrnId}-${testId}-${timestamp}`;
+            const barcodes = result?.requestedTests.map(test => {
                 return {
                     testName: test?.testName || 'Unknown Test',
-                    barcode: barcodeValue
+                    barcode: test?.barcode
                 };
             });
             setGeneratedBarcodes(barcodes);

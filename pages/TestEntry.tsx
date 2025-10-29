@@ -296,17 +296,17 @@ const TestEntry: React.FC = () => {
                         </table>
                     </div>
                     <div className="mt-6 flex justify-end space-x-4">
-                        <div className="text-sm">
+                        {/* <div className="text-sm">
                             <p className="font-semibold">For Technician:</p>
                             <div className="flex space-x-2 mt-1">
                                 <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100" disabled={!isTechnicianRole}>Save</button>
                                 <button className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600" disabled={!isTechnicianRole}>Send for Verification</button>
                             </div>
-                        </div>
+                        </div> */}
                         <div className="text-sm">
-                            <p className="font-semibold">For Doctor:</p>
+                            {/* <p className="font-semibold">For Doctor:</p> */}
                              <div className="flex space-x-2 mt-1">
-                                <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100" disabled={!isDoctorRole}>Save</button>
+                                {/* <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100" disabled={!isDoctorRole}>Save</button> */}
                                 <button className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700" disabled={!isDoctorRole}>Approve & Print</button>
                             </div>
                         </div>

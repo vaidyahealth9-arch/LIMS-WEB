@@ -83,6 +83,7 @@ export interface RequestedTest {
   status: string;
   price: number;
   analytes: Analyte[];
+  barcode: string;
 }
 
 export interface ServiceRequest {
