@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { ServiceRequest, TestResult } from '../types';
-import { searchServiceRequests } from '../services/api';
+import { searchServiceRequests, createObservationForServiceRequest } from '../services/api';
 
 const TestEntry: React.FC = () => {
     const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
     const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
-    const [results, setResults] = useState<TestResult[]>([]);
+    const [results, setResults] = useState<any[]>([]);
     
     const [searchQuery, setSearchQuery] = useState('');
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -92,7 +92,7 @@ const TestEntry: React.FC = () => {
 
     const handleSelectRequest = (request: ServiceRequest) => {
         setSelectedRequest(request);
-        const initialResults: TestResult[] = [];
+        const initialResults: any[] = [];
         request.requestedTests.forEach(test => {
             if (test.analytes) {
                 test.analytes.forEach(analyte => {
@@ -103,7 +103,9 @@ const TestEntry: React.FC = () => {
                         machineValue: '',
                         units: analyte.unit,
                         normalRange: analyte.referenceRanges && analyte.referenceRanges.length > 0 ? analyte.referenceRanges[0].textRange : 'N/A',
-                        comments: ''
+                        comments: '',
+                        specimenId: test.barcode,
+                        analyteId: analyte.analyteId
                     });
                 });
             }
@@ -111,8 +113,47 @@ const TestEntry: React.FC = () => {
         setResults(initialResults);
     };
 
-    const handleResultChange = (id: string, field: keyof TestResult, value: string) => {
+    const handleResultChange = (id: string, field: string, value: string) => {
         setResults(results.map(r => r.id === id ? { ...r, [field]: value } : r));
+    };
+
+    const handleApprove = async () => {
+        if (!selectedRequest) return;
+
+        try {
+            const observationPromises = results
+                .filter(result => result.observedValue)
+                .map(result => {
+                    if (!result.specimenId) {
+                        throw new Error(`Specimen ID is missing for analyte ${result.testName}.`);
+                    }
+
+                    const value = isNaN(Number(result.observedValue)) ? { valueString: result.observedValue } : { valueNumeric: Number(result.observedValue) };
+                    
+                    const observationData = {
+                        specimenId: result.specimenId,
+                        analyteId: result.analyteId,
+                        ...value,
+                        effectiveDateTime: new Date().toISOString(),
+                    };
+
+                    return createObservationForServiceRequest(selectedRequest.id, observationData);
+                });
+
+            await Promise.all(observationPromises);
+            
+            console.log("All observations created successfully.");
+            // Maybe show a success message
+            setSelectedRequest(null); // Clear selection
+            setResults([]);
+            // Refetch service requests to update the list
+            fetchServiceRequests(searchQuery, startDate, endDate, currentPage);
+
+        } catch (error) {
+            console.error("Failed to create observations:", error);
+            // Show an error message to the user, e.g. using a notification system.
+            alert(`Error: ${error.message}`); // Using alert for immediate feedback for the user.
+        }
     };
 
     return (
@@ -307,7 +348,7 @@ const TestEntry: React.FC = () => {
                             {/* <p className="font-semibold">For Doctor:</p> */}
                              <div className="flex space-x-2 mt-1">
                                 {/* <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100" disabled={!isDoctorRole}>Save</button> */}
-                                <button className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700" disabled={!isDoctorRole}>Approve & Print</button>
+                                <button onClick={handleApprove} className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">Approve & Print</button>
                             </div>
                         </div>
                     </div>

@@ -299,6 +299,13 @@ export const updateServiceRequestStatus = (serviceRequestId: string, data: any):
 
 // --- Observations (Test Results) ---
 
+export const createObservationForServiceRequest = (serviceRequestId: number, observationData: any): Promise<Observation> => {
+    return fetchApi<Observation>(`${API_BASE_URL}/service-requests/${serviceRequestId}/observations`, {
+        method: 'POST',
+        body: JSON.stringify(observationData),
+    });
+};
+
 export const addObservation = (data: any): Promise<Observation> => {
     return fetchApi<Observation>(`${API_BASE_URL}/observations`, {
         method: 'POST',

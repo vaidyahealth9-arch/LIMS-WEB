@@ -116,6 +116,8 @@ export interface OrganizationTest {
     price: number;
     createdAt: string;
     updatedAt: string;
+    specimenTypeId: number;
+    defaultNumberOfSpecimens: number;
 }
 
 export interface BilledTest {
@@ -176,7 +178,7 @@ export interface TestAnalyte {
 }
 
 export interface ReferenceRange {
-    id: string;
+    id: number;
     analyteId: string;
     gender: 'male' | 'female' | null;
     minAgeYears: number | null;

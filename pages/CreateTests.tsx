@@ -12,7 +12,7 @@ const CreateTests: React.FC = () => {
     const { addNotification } = useNotifications();
 
     const [availableTests, setAvailableTests] = useState<OrganizationTest[]>([]);
-    const [selectedTests, setSelectedTests] = useState<string[]>([]);
+    const [selectedTests, setSelectedTests] = useState<Record<string, { numberOfSpecimens: number; specimenTypeId: number; testName: string; }>>({});
     const [isLoading, setIsLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [createdServiceRequest, setCreatedServiceRequest] = useState<any>(null);
@@ -75,9 +75,10 @@ const CreateTests: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        const selectedTestIds = Object.keys(selectedTests);
         console.log('Submit clicked, selected tests:', selectedTests);
 
-        if (selectedTests.length === 0) {
+        if (selectedTestIds.length === 0) {
             addNotification({
                 type: 'error',
                 title: 'No Tests Selected',
@@ -102,33 +103,12 @@ const CreateTests: React.FC = () => {
             return;
         }
 
-        console.log("Encounter data:", encounter);
-        console.log("Service request data:", {
-            patientId: encounter.patientId,
-            requesterId: parseInt(userId, 10),
-            encounterId: encounter.id,
-            status: 'ACTIVE',
-            priority: 'routine',
-            testIds: selectedTests.map(id => parseInt(id, 10)),
-        });
-
         // Validate encounter data
-        if (!encounter.patientId) {
+        if (!encounter.patientId || !encounter.id) {
             addNotification({
                 type: 'error',
                 title: 'Invalid Encounter',
-                message: 'Encounter is missing patient ID',
-                persist: false
-            });
-            setIsLoading(false);
-            return;
-        }
-
-        if (!encounter.id) {
-            addNotification({
-                type: 'error',
-                title: 'Invalid Encounter',
-                message: 'Encounter is missing ID',
+                message: 'Encounter is missing patient or encounter ID',
                 persist: false
             });
             setIsLoading(false);
@@ -141,8 +121,14 @@ const CreateTests: React.FC = () => {
             encounterId: encounter.id,
             status: 'ACTIVE',
             priority: 'routine',
-            testIds: selectedTests.map(id => parseInt(id, 10)),
+            tests: Object.entries(selectedTests).map(([testId, testInfo]) => ({
+                testId: parseInt(testId, 10),
+                specimenTypeId: testInfo.specimenTypeId,
+                numberOfSpecimens: testInfo.numberOfSpecimens,
+            })),
         };
+
+        console.log("Service request data:", serviceRequestData);
 
         try {
             console.log('Calling createServiceRequest API...');
@@ -162,18 +148,13 @@ const CreateTests: React.FC = () => {
             addNotification({
                 type: 'success',
                 title: 'Tests Added Successfully',
-                message: `${selectedTests.length} test(s) added with barcodes generated`,
+                message: `${selectedTestIds.length} test(s) added with barcodes generated`,
                 persist: true
             });
             
-            // Don't navigate immediately - let user print barcodes
-            // setTimeout(() => {
-            //     navigate('/patient-list');
-            // }, 5000);
         } catch (error) {
             console.error('Failed to create service request:', error);
             
-            // Get detailed error message
             let errorMessage = 'Unknown error occurred';
             if (error instanceof Error) {
                 errorMessage = error.message;
@@ -181,11 +162,7 @@ const CreateTests: React.FC = () => {
                 errorMessage = error;
             }
             
-            console.error('Error details:', {
-                error,
-                errorMessage,
-                type: typeof error
-            });
+            console.error('Error details:', { error, errorMessage, type: typeof error });
             
             addNotification({
                 type: 'error',
@@ -238,14 +215,34 @@ const CreateTests: React.FC = () => {
     }
 
     const toggleTest = (testId: string) => {
-        console.log('Toggling test:', testId, 'Current selection:', selectedTests);
+        const test = availableTests.find(t => String(t.testId) === testId);
+        if (!test) return;
+
         setSelectedTests(prev => {
-            const newSelection = prev.includes(testId) 
-                ? prev.filter(id => id !== testId)
-                : [...prev, testId];
-            console.log('New selection:', newSelection);
+            const newSelection = { ...prev };
+            if (newSelection[testId]) {
+                delete newSelection[testId];
+            } else {
+                newSelection[testId] = {
+                    testName: test.testName,
+                    specimenTypeId: test.specimenTypeId,
+                    numberOfSpecimens: test.defaultNumberOfSpecimens || 1,
+                };
+            }
             return newSelection;
         });
+    };
+
+    const handleSpecimenCountChange = (testId: string, count: number) => {
+        if (count < 1) return; // Or some other validation
+
+        setSelectedTests(prev => ({
+            ...prev,
+            [testId]: {
+                ...prev[testId],
+                numberOfSpecimens: count,
+            },
+        }));
     };
 
     const filteredTests = availableTests.filter(test =>
@@ -377,147 +374,176 @@ const CreateTests: React.FC = () => {
                 )}
 
                 {generatedBarcodes.length === 0 && (
-                <form onSubmit={handleSubmit}> 
-                    {/* Search and Filter */}
-                    <div className="mb-6">
-                        <div className="flex items-center gap-2 mb-3">
-                            <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-teal-500 rounded-full"></div>
-                            <h3 className="text-lg font-bold text-gray-800">Available Tests</h3>
-                            <span className="ml-auto text-sm text-gray-500">
-                                {selectedTests.length} test(s) selected
-                            </span>
+                <form onSubmit={handleSubmit}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {/* Available Tests Section */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-teal-500 rounded-full"></div>
+                                <h3 className="text-lg font-bold text-gray-800">Available Tests</h3>
+                            </div>
+
+                            {/* Search Bar */}
+                            <div className="relative mb-4">
+                                <input
+                                    type="text"
+                                    placeholder="Search tests..."
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    className="w-full px-4 py-3 pl-11 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
+                                />
+                                <svg className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+
+                            {/* Quick Actions */}
+                            <div className="flex gap-2 mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        const allTests = availableTests.reduce((acc, test) => {
+                                            acc[test.testId] = {
+                                                testName: test.testName,
+                                                specimenTypeId: test.specimenTypeId,
+                                                numberOfSpecimens: test.defaultNumberOfSpecimens || 1,
+                                            };
+                                            return acc;
+                                        }, {} as Record<string, { numberOfSpecimens: number; specimenTypeId: number; testName: string; }>);
+                                        setSelectedTests(allTests);
+                                    }}
+                                    className="text-xs px-3 py-1.5 bg-cyan-100 text-cyan-700 font-semibold rounded-lg hover:bg-cyan-200 transition-colors"
+                                >
+                                    Select All
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setSelectedTests({})}
+                                    className="text-xs px-3 py-1.5 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
+                                >
+                                    Clear All
+                                </button>
+                            </div>
+
+                            {/* Test List */}
+                            <div className="border-2 border-gray-200 rounded-lg max-h-96 overflow-y-auto">
+                                {isLoadingTests ? (
+                                    <div className="text-center py-12">...</div> // Loading spinner
+                                ) : filteredTests.length === 0 ? (
+                                    <div className="text-center py-12 text-gray-500">...</div> // No tests found
+                                ) : (
+                                    <div className="divide-y divide-gray-100">
+                                        {filteredTests.map(test => (
+                                            <label
+                                                key={test.testId}
+                                                className={`flex items-center gap-4 p-4 cursor-pointer hover:bg-cyan-50 transition-colors ${
+                                                    Object.keys(selectedTests).includes(String(test.testId)) ? 'bg-cyan-50/50' : ''
+                                                }`}
+                                            >
+                                                <input
+                                                    type="checkbox"
+                                                    checked={Object.keys(selectedTests).includes(String(test.testId))}
+                                                    onChange={() => toggleTest(String(test.testId))}
+                                                    className="w-5 h-5 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500 focus:ring-2"
+                                                />
+                                                <div className="flex-1">
+                                                    <p className="font-semibold text-gray-800">{test.testName}</p>
+                                                    {test.testCode && (
+                                                        <p className="text-xs text-gray-500 mt-0.5">Code: {test.testCode}</p>
+                                                    )}
+                                                </div>
+                                            </label>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
-                        {/* Search Bar */}
-                        <div className="relative mb-4">
-                            <input
-                                type="text"
-                                placeholder="Search tests..."
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                className="w-full px-4 py-3 pl-11 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
-                            />
-                            <svg className="absolute left-3 top-3.5 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-                        </div>
+                        {/* Selected Tests Section */}
+                        <div>
+                            <div className="flex items-center gap-2 mb-3">
+                                <div className="w-1 h-6 bg-gradient-to-b from-emerald-500 to-green-500 rounded-full"></div>
+                                <h3 className="text-lg font-bold text-gray-800">Selected Tests</h3>
+                                <span className="ml-auto text-sm text-gray-500">
+                                    {Object.keys(selectedTests).length} test(s) selected
+                                </span>
+                            </div>
 
-                        {/* Quick Actions */}
-                        <div className="flex gap-2 mb-4">
-                            <button
-                                type="button"
-                                onClick={() => setSelectedTests(availableTests.map(t => String(t.testId)))}
-                                className="text-xs px-3 py-1.5 bg-cyan-100 text-cyan-700 font-semibold rounded-lg hover:bg-cyan-200 transition-colors"
-                            >
-                                Select All
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => setSelectedTests([])}
-                                className="text-xs px-3 py-1.5 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
-                            >
-                                Clear All
-                            </button>
-                        </div>
-
-                        {/* Test List */}
-                        <div className="border-2 border-gray-200 rounded-lg max-h-96 overflow-y-auto">
-                            {isLoadingTests ? (
-                                <div className="text-center py-12">
-                                    <svg className="animate-spin h-12 w-12 mx-auto text-cyan-600 mb-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                    </svg>
-                                    <p className="text-gray-600 font-medium">Loading available tests...</p>
-                                </div>
-                            ) : filteredTests.length === 0 ? (
-                                <div className="text-center py-12 text-gray-500">
-                                    <svg className="w-16 h-16 mx-auto mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <p className="font-medium">No tests found</p>
-                                    <p className="text-sm mt-1">Try adjusting your search</p>
-                                </div>
-                            ) : (
-                                <div className="divide-y divide-gray-100">
-                                    {filteredTests.map(test => (
-                                        <label
-                                            key={test.testId}
-                                            className={`flex items-center gap-4 p-4 cursor-pointer hover:bg-cyan-50 transition-colors ${
-                                                selectedTests.includes(String(test.testId)) ? 'bg-cyan-50/50' : ''
-                                            }`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                checked={selectedTests.includes(String(test.testId))}
-                                                onChange={() => toggleTest(String(test.testId))}
-                                                className="w-5 h-5 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500 focus:ring-2"
-                                            />
+                            <div className="border-2 border-gray-200 rounded-lg max-h-[28rem] overflow-y-auto p-2 space-y-2 bg-gray-50/50">
+                                {Object.keys(selectedTests).length === 0 ? (
+                                    <div className="text-center py-12 text-gray-500">
+                                        <p>No tests selected yet.</p>
+                                    </div>
+                                ) : (
+                                    Object.entries(selectedTests).map(([testId, testInfo]) => (
+                                        <div key={testId} className="flex items-center gap-4 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
                                             <div className="flex-1">
-                                                <p className="font-semibold text-gray-800">{test.testName}</p>
-                                                {test.testCode && (
-                                                    <p className="text-xs text-gray-500 mt-0.5">Code: {test.testCode}</p>
-                                                )}
+                                                <p className="font-semibold text-gray-800">{testInfo.testName}</p>
                                             </div>
-                                            {selectedTests.includes(String(test.testId)) && (
-                                                <svg className="w-5 h-5 text-cyan-600" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                            <div className="flex items-center gap-2">
+                                                <label htmlFor={`specimen-count-${testId}`} className="text-sm font-medium text-gray-600">Specimens:</label>
+                                                <input
+                                                    type="number"
+                                                    id={`specimen-count-${testId}`}
+                                                    min="1"
+                                                    value={testInfo.numberOfSpecimens}
+                                                    onChange={(e) => handleSpecimenCountChange(testId, parseInt(e.target.value, 10))}
+                                                    className="w-20 px-2 py-1 border-2 border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                                                />
+                                            </div>
+                                            <button type="button" onClick={() => toggleTest(testId)} className="text-red-500 hover:text-red-700">
+                                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                                                 </svg>
-                                            )}
-                                        </label>
-                                    ))}
-                                </div>
-                            )}
+                                            </button>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
                         </div>
                     </div>
 
                     {/* Action Buttons */}
                     <div className="mt-8 pt-6 border-t-2 border-gray-100">
-                        {/* Debug Info - Remove in production */}
-                        {selectedTests.length > 0 && (
+                        {Object.keys(selectedTests).length > 0 && (
                             <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
                                 <p className="font-semibold text-blue-800 mb-1">Debug Info:</p>
-                                <p className="text-blue-700">Selected Test IDs: {selectedTests.join(', ')}</p>
+                                <p className="text-blue-700">Selected Test IDs: {Object.keys(selectedTests).join(', ')}</p>
                                 <p className="text-blue-700">Encounter ID: {encounter.id}</p>
                                 <p className="text-blue-700">Patient ID: {encounter.patientId}</p>
                             </div>
                         )}
                         
                         <div className="flex justify-between items-center">
-                        <div className="text-sm text-gray-600">
-                            <span className="font-semibold">{selectedTests.length}</span> test(s) selected
-                        </div>
-                        <div className="flex gap-3">
-                            <button
-                                type="button"
-                                onClick={() => navigate(-1)}
-                                className="px-6 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all duration-200"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                type="submit"
-                                disabled={isLoading || selectedTests.length === 0}
-                                className="px-8 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-cyan-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                {isLoading ? (
-                                    <>
-                                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Adding Tests...
-                                    </>
-                                ) : (
-                                    <>
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                                        </svg>
-                                        Add Tests {selectedTests.length > 0 && `(${selectedTests.length})`}
-                                    </>
-                                )}
-                            </button>
-                        </div>
+                            <div className="text-sm text-gray-600">
+                                <span className="font-semibold">{Object.keys(selectedTests).length}</span> test(s) selected
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(-1)}
+                                    className="px-6 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all duration-200"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={isLoading || Object.keys(selectedTests).length === 0}
+                                    className="px-8 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-cyan-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                >
+                                    {isLoading ? (
+                                        <>
+                                            <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">...</svg>
+                                            Adding Tests...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">...</svg>
+                                            Add Tests {Object.keys(selectedTests).length > 0 && `(${Object.keys(selectedTests).length})`}
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </form>
