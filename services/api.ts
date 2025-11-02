@@ -306,6 +306,10 @@ export const createObservationForServiceRequest = (serviceRequestId: number, obs
     });
 };
 
+export const getObservationsForServiceRequest = (serviceRequestId: string): Promise<Observation[]> => {
+    return fetchApi<Observation[]>(`${API_BASE_URL}/service-requests/${serviceRequestId}/observations`);
+};
+
 export const addObservation = (data: any): Promise<Observation> => {
     return fetchApi<Observation>(`${API_BASE_URL}/observations`, {
         method: 'POST',
@@ -324,6 +328,13 @@ export const approveObservations = (data: any): Promise<any> => {
     return fetchApi<any>(`${API_BASE_URL}/observations/approve`, {
         method: 'POST',
         body: JSON.stringify(data),
+    });
+};
+
+export const updateObservation = (observationId: number, observationData: any): Promise<Observation> => {
+    return fetchApi<Observation>(`${API_BASE_URL}/observations/${observationId}`, {
+        method: 'PUT',
+        body: JSON.stringify(observationData),
     });
 };
 
