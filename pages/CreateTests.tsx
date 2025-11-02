@@ -499,14 +499,6 @@ const CreateTests: React.FC = () => {
 
                     {/* Action Buttons */}
                     <div className="mt-8 pt-6 border-t-2 border-gray-100">
-                        {Object.keys(selectedTests).length > 0 && (
-                            <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs">
-                                <p className="font-semibold text-blue-800 mb-1">Debug Info:</p>
-                                <p className="text-blue-700">Selected Test IDs: {Object.keys(selectedTests).join(', ')}</p>
-                                <p className="text-blue-700">Encounter ID: {encounter.id}</p>
-                                <p className="text-blue-700">Patient ID: {encounter.patientId}</p>
-                            </div>
-                        )}
                         
                         <div className="flex justify-between items-center">
                             <div className="text-sm text-gray-600">
