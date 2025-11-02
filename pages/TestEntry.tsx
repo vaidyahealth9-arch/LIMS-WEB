@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import type { ServiceRequest, TestResult } from '../types';
 import { searchServiceRequests, createObservationForServiceRequest } from '../services/api';
 
 const TestEntry: React.FC = () => {
+    const navigate = useNavigate();
     const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
     const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
     const [results, setResults] = useState<any[]>([]);
@@ -268,6 +270,14 @@ const TestEntry: React.FC = () => {
                                         <button onClick={() => handleSelectRequest(req)} className="px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-cyan-600 to-teal-600 rounded-md hover:from-cyan-700 hover:to-teal-700 transition-all">
                                             {selectedRequest?.id === req.id ? '✓ Selected' : 'Select'}
                                         </button>
+                                        {(req.status !== 'ACTIVE' && req.status !== 'PENDING') && (
+                                            <button
+                                                onClick={() => navigate('/view-observations', { state: { serviceRequest: req } })}
+                                                className="ml-2 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-md hover:from-blue-700 hover:to-indigo-700 transition-all"
+                                            >
+                                                View Observations
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}

@@ -12,6 +12,7 @@ import UserManagement from './pages/UserManagement';
 import IrisWorklist from './pages/IrisWorklist';
 import Encounter from './pages/Encounter';
 import CreateTests from './pages/CreateTests';
+import ViewObservations from './pages/ViewObservations';
 import { AuthProvider, useAuth } from './services/AuthContext';
 import { NotificationProvider } from './services/NotificationContext';
 import { LoginPage } from './pages/LoginPage';
@@ -37,6 +38,7 @@ const MainLayout = () => {
                         <Route path="/iris" element={<IrisWorklist />} />
                         <Route path="/encounter" element={<Encounter />} />
                         <Route path="/create-tests" element={<CreateTests />} />
+                        <Route path="/view-observations" element={<ViewObservations />} />
                     </Routes>
                 </main>
             </div>

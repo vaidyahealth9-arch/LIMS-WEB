@@ -330,12 +330,7 @@ const CreateTests: React.FC = () => {
                                 >
                                     Continue
                                 </button>
-                                <button
-                                    onClick={() => navigate('/view-observations', { state: { serviceRequest: createdServiceRequest } })}
-                                    className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors"
-                                >
-                                    View Observations
-                                </button>
+                                
                             </div>
                         </div>
                         

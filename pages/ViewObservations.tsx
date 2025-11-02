@@ -121,7 +121,7 @@ const ViewObservations: React.FC = () => {
                                             className="w-32 px-2 py-1 border-2 border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-cyan-500"
                                         />
                                     ) : (
-                                        <p className="w-32 text-right">{obs.valueNumeric !== null ? `${obs.valueNumeric} ${obs.unit}` : 'No value'}</p>
+                                        <p className="w-32 text-right">{obs.valueNumeric !== null ? `${obs.valueNumeric} ${obs.unitName}` : 'No value'}</p>
                                     )}
                                     <div className="w-24">
                                         {obs.isEditing ? (
