@@ -137,11 +137,11 @@ const CreateTests: React.FC = () => {
             setCreatedServiceRequest(result);
             
             // Generate barcodes for each test
-            const barcodes = result?.requestedTests.map(test => {
-                return {
+            const barcodes = result?.requestedTests.flatMap(test => {
+                return test.specimenBarcodes.map(specimenBarcode => ({
                     testName: test?.testName || 'Unknown Test',
-                    barcode: test?.barcode
-                };
+                    barcode: specimenBarcode
+                }));
             });
             setGeneratedBarcodes(barcodes);
             
@@ -311,13 +311,7 @@ const CreateTests: React.FC = () => {
                                         <p className="font-bold text-sm text-gray-800 mt-2">{item.testName}</p>
                                     </div>
                                     <div className="flex justify-center bg-white p-2 rounded">
-                                        <Barcode 
-                                            value={item.barcode} 
-                                            width={1.5}
-                                            height={50}
-                                            fontSize={10}
-                                            margin={5}
-                                        />
+                                    <img src={`data:image/png;base64,${item.barcode}`} alt={`Barcode for ${item.testName}`} className="max-w-full h-auto" />
                                     </div>
                                     <p className="text-xs text-center text-gray-500 mt-2">
                                         {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
