@@ -124,9 +124,9 @@ const TestEntry: React.FC = () => {
             const observationPromises = results
                 .filter(result => result.observedValue)
                 .map(result => {
-                    if (!result.specimenId) {
-                        throw new Error(`Specimen ID is missing for analyte ${result.testName}.`);
-                    }
+                    // if (!result.specimenId) {
+                    //     throw new Error(`Specimen ID is missing for analyte ${result.testName}.`);
+                    // }
 
                     const value = isNaN(Number(result.observedValue)) ? { valueString: result.observedValue } : { valueNumeric: Number(result.observedValue) };
                     

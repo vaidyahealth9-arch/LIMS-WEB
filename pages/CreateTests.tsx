@@ -22,6 +22,38 @@ const CreateTests: React.FC = () => {
     const [encounter, setEncounter] = useState<Encounter | null>(encounterFromState);
     const [isLoadingEncounter, setIsLoadingEncounter] = useState(false);
 
+    const handlePrint = () => {
+        const node = barcodeRef.current;
+        if (node) {
+            const printWindow = window.open('', '', 'height=600,width=800');
+            if (printWindow) {
+                const newDocument = printWindow.document;
+                newDocument.write('<html><head><title>Print Barcodes</title>');
+
+                // Copy styles
+                const links = document.getElementsByTagName('link');
+                for (let i = 0; i < links.length; i++) {
+                    newDocument.write(links[i].outerHTML);
+                }
+                const styles = document.getElementsByTagName('style');
+                for (let i = 0; i < styles.length; i++) {
+                    newDocument.write(styles[i].outerHTML);
+                }
+
+                newDocument.write('</head><body>');
+                newDocument.write(node.innerHTML);
+                newDocument.write('</body></html>');
+                newDocument.close();
+
+                printWindow.focus();
+                setTimeout(() => {
+                    printWindow.print();
+                    printWindow.close();
+                }, 1000); // Wait for styles to load
+            }
+        }
+    };
+
     // Fetch full encounter details to ensure we have patientId
     useEffect(() => {
         const fetchEncounterDetails = async () => {
@@ -123,8 +155,8 @@ const CreateTests: React.FC = () => {
             priority: 'routine',
             tests: Object.entries(selectedTests).map(([testId, testInfo]) => ({
                 testId: parseInt(testId, 10),
-                specimenTypeId: testInfo.specimenTypeId,
-                numberOfSpecimens: testInfo.numberOfSpecimens,
+                specimenTypeId: testInfo?.specimenTypeId,
+                numberOfSpecimens: testInfo?.numberOfSpecimens,
             })),
         };
 
@@ -284,7 +316,7 @@ const CreateTests: React.FC = () => {
                             </div>
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => window.print()}
+                                    onClick={handlePrint}
                                     className="px-4 py-2 bg-white border-2 border-emerald-500 text-emerald-700 font-semibold rounded-lg hover:bg-emerald-50 transition-colors flex items-center gap-2"
                                 >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
