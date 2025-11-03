@@ -11,21 +11,12 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<{ username: string, roles: string[], organizationId: string, organizationName: string } | null>(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-      const storedToken = localStorage.getItem('token');
-      if (storedToken) {
-          setToken(storedToken);
-          const storedUser = localStorage.getItem('user');
-          if (storedUser) {
-              setUser(JSON.parse(storedUser));
-          }
-          setIsAuthenticated(true);
-      }
-  }, []);
+  const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+  const [user, setUser] = useState<{ username: string, roles: string[], organizationId: string, organizationName: string } | null>(() => {
+    const storedUser = localStorage.getItem('user');
+    return storedUser ? JSON.parse(storedUser) : null;
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('token'));
 
   const login = async (username, password) => {
       const response = await apiLogin(username, password);
@@ -52,6 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       localStorage.removeItem('organizationId');
+      localStorage.removeItem('userId');
   };
 
   return (
