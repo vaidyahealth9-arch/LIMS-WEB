@@ -50,8 +50,7 @@ const Sidebar: React.FC = () => {
                             >
                                 <Icon name={link.icon} />
                                 <span className="ml-3 flex-1">{link.name}</span>
-                                {(link.path === '/' || 
-                                  link.path === '/lab-management' || 
+                                {(link.path === '/lab-management' || 
                                   link.path === '/iris' || 
                                   link.path === '/user-management') && (
                                     <span className="ml-2 px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full border border-amber-200">

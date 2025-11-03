@@ -1,32 +1,18 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
 
-const kpiData = [
-    { title: 'New Patients Today', value: '45', change: '+6%', icon: 'user-plus', color: 'cyan' },
-    { title: 'ABHA Linked', value: '67%', change: '+4%', icon: 'link', color: 'teal' },
-    { title: 'Revenue Today', value: '₹50,000', change: '+5%', icon: 'rupee', color: 'emerald' },
-    { title: 'Invoices Today', value: '120', change: '', icon: 'invoice', color: 'sky' },
-    { title: 'Pending Entries', value: '8', change: '-2', icon: 'beaker', color: 'slate' },
-];
-
-const revenueData = [
-    { name: 'Mon', Revenue: 4000 },
-    { name: 'Tue', Revenue: 3000 },
-    { name: 'Wed', Revenue: 2000 },
-    { name: 'Thu', Revenue: 2780 },
-    { name: 'Fri', Revenue: 1890 },
-    { name: 'Sat', Revenue: 2390 },
-    { name: 'Sun', Revenue: 3490 },
-];
-
-const tatData = [
-    { name: 'CBC', TAT: 2.5 },
-    { name: 'LFT', TAT: 4 },
-    { name: 'KFT', TAT: 4.5 },
-    { name: 'Lipid', TAT: 3 },
-    { name: 'Urine R/M', TAT: 1.5 },
-];
+const getDashboardData = async () => {
+    const token = localStorage.getItem('token');
+    const response = await fetch('/api/dashboard', {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
+    }
+    return response.json();
+};
 
 const Icon: React.FC<{ name: string, className: string }> = ({ name, className }) => {
     const iconMap: { [key: string]: JSX.Element } = {
@@ -39,7 +25,7 @@ const Icon: React.FC<{ name: string, className: string }> = ({ name, className }
     return <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">{iconMap[name]}</svg>;
 }
 
-const KPICard: React.FC<{ title: string, value: string, change: string, icon: string, color: string }> = ({ title, value, change, icon, color }) => {
+const KPICard: React.FC<{ title: string, value: string, icon: string, color: string }> = ({ title, value, icon, color }) => {
     const colors: { [key: string]: string } = {
         cyan: 'from-cyan-500 to-cyan-600',
         teal: 'from-teal-500 to-teal-600',
@@ -47,14 +33,12 @@ const KPICard: React.FC<{ title: string, value: string, change: string, icon: st
         sky: 'from-sky-500 to-sky-600',
         slate: 'from-slate-500 to-slate-600',
     };
-    const changeColor = change.startsWith('+') ? 'text-cyan-100' : change.startsWith('-') ? 'text-red-200' : '';
 
     return (
         <div className={`bg-gradient-to-br ${colors[color]} text-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 flex justify-between items-center border border-white/20`}>
             <div>
                 <p className="text-xs font-semibold uppercase tracking-wider opacity-90 mb-1">{title}</p>
                 <p className="text-3xl font-bold mb-1">{value}</p>
-                {change && <p className={`text-sm font-medium ${changeColor}`}>{change} vs prev period</p>}
             </div>
             <div className="bg-white/20 backdrop-blur-sm p-4 rounded-2xl">
                 <Icon name={icon} className="w-8 h-8" />
@@ -64,6 +48,42 @@ const KPICard: React.FC<{ title: string, value: string, change: string, icon: st
 }
 
 const Dashboard: React.FC = () => {
+    const [kpiData, setKpiData] = useState([
+        { title: 'New Patients Today', value: '-', icon: 'user-plus', color: 'cyan' },
+        { title: 'Revenue Today', value: '-', icon: 'rupee', color: 'emerald' },
+        { title: 'Pending Service Requests', value: '-', icon: 'beaker', color: 'slate' },
+    ]);
+    const [revenueData, setRevenueData] = useState([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            try {
+                const data = await getDashboardData();
+                
+                setKpiData([
+                    { title: 'New Patients Today', value: data.newPatientsToday.toString(), icon: 'user-plus', color: 'cyan' },
+                    { title: 'Revenue Today', value: `₹${data.revenueToday.toLocaleString('en-IN')}`, icon: 'rupee', color: 'emerald' },
+                    { title: 'Pending Service Requests', value: data.pendingServiceRequests.toString(), icon: 'beaker', color: 'slate' },
+                ]);
+
+                const formattedRevenue = data.weeklyRevenue.map(item => ({
+                    name: item.day.substring(0, 3),
+                    Revenue: item.revenue,
+                }));
+                setRevenueData(formattedRevenue);
+
+            } catch (error) {
+                console.error("Failed to fetch dashboard data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchData();
+    }, []);
+
     return (
         <div className="container mx-auto px-4 py-6">
             {/* Header */}
@@ -75,57 +95,44 @@ const Dashboard: React.FC = () => {
             </div>
 
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-                {kpiData.map(item => <KPICard key={item.title} {...item} />)}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {isLoading ? (
+                    Array.from({ length: 3 }).map((_, index) => (
+                        <div key={index} className="bg-gray-200 animate-pulse p-6 rounded-xl h-[124px]"></div>
+                    ))
+                ) : (
+                    kpiData.map(item => <KPICard key={item.title} {...item} />)
+                )}
             </div>
             
             {/* Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
                 <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
                     <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
                         <span className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-teal-500 rounded-full"></span>
                         Weekly Revenue Trends
                     </h3>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={revenueData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                            <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: '12px' }} />
-                            <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-                            <Tooltip 
-                                contentStyle={{ 
-                                    backgroundColor: 'white', 
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '8px',
-                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                                }} 
-                            />
-                            <Legend />
-                            <Line type="monotone" dataKey="Revenue" stroke="#0891b2" strokeWidth={3} activeDot={{ r: 6, fill: '#0e7490' }} />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </div>
-                <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                        <span className="w-1 h-6 bg-gradient-to-b from-teal-500 to-emerald-500 rounded-full"></span>
-                        Average Turn-Around Time (TAT) in Hours
-                    </h3>
-                     <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={tatData}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                            <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: '12px' }} />
-                            <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-                            <Tooltip 
-                                contentStyle={{ 
-                                    backgroundColor: 'white', 
-                                    border: '1px solid #e5e7eb',
-                                    borderRadius: '8px',
-                                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                                }} 
-                            />
-                            <Legend />
-                            <Bar dataKey="TAT" fill="#14b8a6" radius={[8, 8, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
+                    {isLoading ? (
+                        <div className="flex items-center justify-center h-[300px] bg-gray-200 animate-pulse rounded-lg"></div>
+                    ) : (
+                        <ResponsiveContainer width="100%" height={300}>
+                            <LineChart data={revenueData}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                                <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: '12px' }} />
+                                <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
+                                <Tooltip 
+                                    contentStyle={{ 
+                                        backgroundColor: 'white', 
+                                        border: '1px solid #e5e7eb',
+                                        borderRadius: '8px',
+                                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                                    }} 
+                                />
+                                <Legend />
+                                <Line type="monotone" dataKey="Revenue" stroke="#0891b2" strokeWidth={3} activeDot={{ r: 6, fill: '#0e7490' }} />
+                            </LineChart>
+                        </ResponsiveContainer>
+                    )}
                 </div>
             </div>
         </div>
