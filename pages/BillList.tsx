@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Bill, Paginated } from '../types';
-import { searchBills } from '../services/api';
+import { searchBills, recordPayment } from '../services/api';
+import { useNotifications } from '../services/NotificationContext';
 
 const BillStatusBadge: React.FC<{ status: Bill['status'] }> = ({ status }) => {
     const statusClasses: Record<Bill['status'], string> = {
@@ -26,6 +27,11 @@ export const BillList: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
+    const [billForPayment, setBillForPayment] = useState<Bill | null>(null);
+    const [paymentAmount, setPaymentAmount] = useState<string | number>('');
+    const [paymentMethod, setPaymentMethod] = useState('CASH');
+    const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+    const { addNotification } = useNotifications();
     const pageSize = 10;
 
     const handlePrintInvoice = () => {
@@ -139,6 +145,49 @@ export const BillList: React.FC = () => {
 
         setStartDate(pastDate.toISOString().split('T')[0]);
         setEndDate(today.toISOString().split('T')[0]);
+    };
+
+    const handleRecordPaymentClick = (bill: Bill) => {
+        setBillForPayment(bill);
+        setPaymentAmount((bill.netAmount - bill.paidAmount).toFixed(2));
+        setPaymentDate(new Date().toISOString().split('T')[0]);
+        setPaymentMethod('CASH');
+    };
+
+    const handlePaymentSubmit = async () => {
+        if (!billForPayment) return;
+
+        setIsLoading(true);
+        try {
+            const paymentData = {
+                amountPaid: parseFloat(paymentAmount as string),
+                paymentMethod: paymentMethod,
+                paymentDate: new Date(paymentDate).toISOString(),
+            };
+
+            await recordPayment(billForPayment.billId.toString(), paymentData);
+
+            addNotification({
+                type: 'success',
+                title: 'Payment Recorded',
+                message: `Payment for invoice ${billForPayment.invoiceNumber} recorded successfully.`,
+                persist: false,
+            });
+
+            setBillForPayment(null);
+            fetchBills(searchQuery, startDate, endDate, currentPage);
+
+        } catch (error) {
+            console.error('Failed to record payment:', error);
+            addNotification({
+                type: 'error',
+                title: 'Payment Failed',
+                message: error instanceof Error ? error.message : 'Failed to record payment.',
+                persist: true,
+            });
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     return (
@@ -265,6 +314,14 @@ export const BillList: React.FC = () => {
                                         >
                                             View
                                         </button>
+                                        {(bill.status === 'DUE' || bill.status === 'PARTIALLY_PAID') && (
+                                            <button
+                                                onClick={() => handleRecordPaymentClick(bill)}
+                                                className="ml-4 text-green-600 hover:text-green-900 font-medium"
+                                            >
+                                                Record Payment
+                                            </button>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
@@ -293,6 +350,71 @@ export const BillList: React.FC = () => {
                     >
                         Next →
                     </button>
+                </div>
+            )}
+
+            {/* Payment Modal */}
+            {billForPayment && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 backdrop-blur-sm">
+                    <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
+                        <h3 className="text-2xl font-bold text-gray-800 mb-4">Record Payment</h3>
+                        <p className="mb-2">Invoice: <span className="font-semibold">{billForPayment.invoiceNumber}</span></p>
+                        <p className="mb-6">Amount Due: <span className="font-semibold">₹{(billForPayment.netAmount - billForPayment.paidAmount).toFixed(2)}</span></p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="amountPaid" className="block text-sm font-medium text-gray-700">Amount to Pay</label>
+                                <input
+                                    type="number"
+                                    id="amountPaid"
+                                    value={paymentAmount}
+                                    onChange={(e) => setPaymentAmount(e.target.value)}
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                                    placeholder="Enter amount"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700">Payment Method</label>
+                                <select
+                                    id="paymentMethod"
+                                    value={paymentMethod}
+                                    onChange={(e) => setPaymentMethod(e.target.value)}
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                                >
+                                    <option>CASH</option>
+                                    <option>CARD</option>
+                                    <option>UPI</option>
+                                    <option>BANK_TRANSFER</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label htmlFor="paymentDate" className="block text-sm font-medium text-gray-700">Payment Date</label>
+                                <input
+                                    type="date"
+                                    id="paymentDate"
+                                    value={paymentDate}
+                                    onChange={(e) => setPaymentDate(e.target.value)}
+                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="mt-8 flex justify-end space-x-4">
+                            <button
+                                onClick={() => setBillForPayment(null)}
+                                className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handlePaymentSubmit}
+                                disabled={isLoading}
+                                className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50"
+                            >
+                                {isLoading ? 'Saving...' : 'Submit Payment'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             )}
 

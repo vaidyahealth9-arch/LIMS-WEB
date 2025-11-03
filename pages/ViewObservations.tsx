@@ -55,14 +55,16 @@ const ViewObservations: React.FC = () => {
         const observation = observations[index];
         setIsLoading(true);
         try {
-            // This is a placeholder for the actual API call
-            // await updateObservation({
-            //     serviceRequestId: serviceRequest.id,
-            //     testId: observation.testId,
-            //     analyteId: observation.analyteId,
-            //     valueNumeric: observation.valueNumeric, // Send valueNumeric
-            // });
-            console.log('Saving observation:', observation);
+            const observationData = {
+                valueNumeric: observation.valueNumeric,
+                valueString: observation.valueString,
+                valueCode: observation.valueCode,
+                valueCodeSystem: observation.valueCodeSystem,
+                interpretationCode: observation.interpretationCode,
+                interpretationSystem: observation.interpretationSystem,
+                effectiveDateTime: observation.effectiveDateTime,
+            };
+            await updateObservation(observation.id, observationData);
 
             addNotification({
                 type: 'success',
