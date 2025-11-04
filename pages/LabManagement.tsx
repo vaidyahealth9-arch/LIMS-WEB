@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import type { Test } from '../types';
 import { getAllTests, getEnabledTestsForLab, enableTestForLab } from '../services/api';
 
-// A placeholder for the current user's organization.
-// In a real app, this would come from an auth context or similar.
-const CURRENT_ORGANIZATION_ID = '1';
 
 const ToggleSwitch: React.FC<{ checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }> = ({ checked, onChange, disabled }) => (
     <label className="relative inline-flex items-center cursor-pointer">
@@ -28,15 +25,19 @@ const LabManagement: React.FC = () => {
                 setIsLoading(true);
                 setError(null);
                 // Use the centralized API services to fetch data
+                const orgId = localStorage.getItem('organizationId');
+                if (!orgId) {
+                    throw new Error('Organization ID not found');
+                }
                 const [masterList, labConfiguration] = await Promise.all([
                     getAllTests(),
-                    getEnabledTestsForLab(CURRENT_ORGANIZATION_ID)
+                    getEnabledTestsForLab(orgId)
                 ]);
 
                 const enabledTestsMap = new Map<string, number>();
                 labConfiguration.forEach(config => {
-                    if (config.is_enabled) {
-                        enabledTestsMap.set(config.test_id, config.price);
+                    if (config.isEnabled) {
+                        enabledTestsMap.set(config.testId, config.price);
                     }
                 });
 
@@ -71,7 +72,11 @@ const LabManagement: React.FC = () => {
 
         try {
             // Use the centralized API service to update data
-await enableTestForLab(CURRENT_ORGANIZATION_ID, { testId: parseInt(testId, 10), isEnabled: isEnabled, price: priceToUpdate });
+            const orgId = localStorage.getItem('organizationId');
+            if (!orgId) {
+                throw new Error('Organization ID not found');
+            }
+            await enableTestForLab(orgId, { testId: parseInt(testId, 10), isEnabled: isEnabled, price: priceToUpdate });
         } catch (e) {
             setLabPrices(originalPrices); // Revert on failure
             alert((e as Error).message);
@@ -101,7 +106,11 @@ await enableTestForLab(CURRENT_ORGANIZATION_ID, { testId: parseInt(testId, 10), 
 
         try {
             // Use the centralized API service to update data
-await enableTestForLab(CURRENT_ORGANIZATION_ID, { testId: parseInt(testId, 10), isEnabled: true, price });
+            const orgId = localStorage.getItem('organizationId');
+            if (!orgId) {
+                throw new Error('Organization ID not found');
+            }
+            await enableTestForLab(orgId, { testId: parseInt(testId, 10), isEnabled: true, price });
         } catch (e) {
             alert((e as Error).message);
             // Optionally revert price change here by refetching data
@@ -132,7 +141,7 @@ await enableTestForLab(CURRENT_ORGANIZATION_ID, { testId: parseInt(testId, 10), 
                             <tr>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Test Name</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
-                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Container</th>
+                                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lab Price</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Perform Test</th>
                             </tr>
@@ -145,9 +154,9 @@ await enableTestForLab(CURRENT_ORGANIZATION_ID, { testId: parseInt(testId, 10), 
 
                                 return (
                                     <tr key={test.id} className={`hover:bg-gray-50 transition-opacity ${isUpdating ? 'opacity-50' : 'opacity-100'}`}>
-                                        <td className="px-4 py-4 whitespace-nowrap font-medium text-gray-900">{test.test_name}</td>
+                                        <td className="px-4 py-4 whitespace-nowrap font-medium text-gray-900">{test.testName}</td>
                                         <td className="px-4 py-4 whitespace-nowrap text-gray-500">{test.department}</td>
-                                        <td className="px-4 py-4 whitespace-nowrap text-gray-500">{test.container_description}</td>
+                                        <td className="px-4 py-4 whitespace-nowrap text-gray-500">{test.method}</td>
                                         <td className="px-4 py-4 whitespace-nowrap">
                                             {isTestEnabled ? (
                                                 <div className="relative">
