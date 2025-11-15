@@ -410,3 +410,21 @@ export const searchBills = (
     }
     return fetchApi<Paginated<Bill>>(`${API_BASE_URL}/bills/search?${params.toString()}`);
 };
+
+export const getOrganizationTestInterpretationRules = (organizationId: string, testId: string): Promise<OrganizationTestInterpretationRule[]> => {
+    return fetchApi<OrganizationTestInterpretationRule[]>(`${API_BASE_URL}/organization-test-interpretation-rules?organizationId=${organizationId}&testId=${testId}`);
+};
+
+export const createOrganizationTestInterpretationRule = (data: any): Promise<OrganizationTestInterpretationRule> => {
+    return fetchApi<OrganizationTestInterpretationRule>(`${API_BASE_URL}/organization-test-interpretation-rules`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+};
+
+export const updateOrganizationTestInterpretationRule = (ruleId: number, data: any): Promise<OrganizationTestInterpretationRule> => {
+    return fetchApi<OrganizationTestInterpretationRule>(`${API_BASE_URL}/organization-test-interpretation-rules/${ruleId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+};

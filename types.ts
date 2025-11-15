@@ -200,6 +200,23 @@ export interface TestInterpretationRule {
     priority: 'Info' | 'Critical';
 }
 
+export type OrganizationTestInterpretationRule = {
+    id: number;
+    organizationTestId: {
+        organization: {
+            id: number;
+        };
+        test: {
+            id: number;
+        };
+    };
+    conditionExpression: string;
+    classification: string;
+    autoComment: string;
+    reflexActionText: string;
+    priority: string;
+};
+
 export interface Organization {
     id: string;
     organizationName: string;
