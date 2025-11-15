@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import type { OrganizationTestInterpretationRule, Test } from '../types';
-import { getOrganizationTestInterpretationRules, createOrganizationTestInterpretationRule, updateOrganizationTestInterpretationRule } from '../services/api';
+import type { InterpretationRule, Test } from '../types';
+import { getInterpretationRules, createInterpretationRule, updateInterpretationRule } from '../services/api';
 
 interface InterpretationRuleModalProps {
     test: Test;
@@ -10,16 +10,16 @@ interface InterpretationRuleModalProps {
 }
 
 const InterpretationRuleModal: React.FC<InterpretationRuleModalProps> = ({ test, organizationId, onClose }) => {
-    const [rules, setRules] = useState<OrganizationTestInterpretationRule[]>([]);
+    const [analytes, setAnalytes] = useState<InterpretationRule[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [editingRule, setEditingRule] = useState<Partial<OrganizationTestInterpretationRule> | null>(null);
+    const [editingRule, setEditingRule] = useState<Partial<InterpretationRule> | null>(null);
 
     useEffect(() => {
         const fetchRules = async () => {
             try {
-                const fetchedRules = await getOrganizationTestInterpretationRules(organizationId, test.id);
-                setRules(fetchedRules);
+                const fetchedAnalytes = await getInterpretationRules(organizationId, test.id);
+                setAnalytes(fetchedAnalytes);
             } catch (err) {
                 setError('Failed to fetch interpretation rules.');
             } finally {
@@ -32,11 +32,9 @@ const InterpretationRuleModal: React.FC<InterpretationRuleModalProps> = ({ test,
     const handleSave = async () => {
         if (!editingRule) return;
 
-        const ruleData = {
-            organizationTestId: {
-                organization: { id: parseInt(organizationId, 10) },
-                test: { id: parseInt(test.id, 10) },
-            },
+        const ruleData: Partial<InterpretationRule> = {
+            organizationId: parseInt(organizationId, 10),
+            analyteId: editingRule.analyteId,
             conditionExpression: editingRule.conditionExpression,
             classification: editingRule.classification,
             autoComment: editingRule.autoComment,
@@ -46,16 +44,23 @@ const InterpretationRuleModal: React.FC<InterpretationRuleModalProps> = ({ test,
 
         try {
             if (editingRule.id) {
-                const updatedRule = await updateOrganizationTestInterpretationRule(editingRule.id, ruleData);
-                setRules(rules.map(r => r.id === updatedRule.id ? updatedRule : r));
+                const updatedRule = await updateInterpretationRule(editingRule.id, ruleData);
+                setAnalytes(analytes.map(a => a.analyteId === updatedRule.analyteId ? { ...a, ...updatedRule } : a));
             } else {
-                const newRule = await createOrganizationTestInterpretationRule(ruleData);
-                setRules([...rules, newRule]);
+                const newRule = await createInterpretationRule(ruleData);
+                setAnalytes(analytes.map(a => a.analyteId === newRule.analyteId ? { ...a, ...newRule } : a));
             }
             setEditingRule(null);
         } catch (err) {
             setError('Failed to save rule.');
         }
+    };
+
+    const handleEdit = (analyte: InterpretationRule) => {
+        setEditingRule({
+            ...analyte,
+            organizationId: parseInt(organizationId, 10),
+        });
     };
 
     return (
@@ -64,38 +69,43 @@ const InterpretationRuleModal: React.FC<InterpretationRuleModalProps> = ({ test,
                 <h2 className="text-xl font-bold mb-4">Manage Interpretation Rules for {test.testName}</h2>
                 {isLoading && <p>Loading rules...</p>}
                 {error && <p className="text-red-500">{error}</p>}
-                <div className="mb-4">
-                    <button onClick={() => setEditingRule({})} className="bg-indigo-600 text-white px-4 py-2 rounded-md">Add New Rule</button>
-                </div>
+
                 <table className="min-w-full divide-y divide-gray-200">
                     <thead>
                         <tr>
+                            <th>Analyte</th>
                             <th>Condition</th>
                             <th>Classification</th>
                             <th>Auto Comment</th>
                             <th>Reflex Action</th>
                             <th>Priority</th>
+                            <th>Source</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {rules.map(rule => (
-                            <tr key={rule.id}>
-                                <td>{rule.conditionExpression}</td>
-                                <td>{rule.classification}</td>
-                                <td>{rule.autoComment}</td>
-                                <td>{rule.reflexActionText}</td>
-                                <td>{rule.priority}</td>
+                        {analytes.map(analyte => (
+                            <tr key={analyte.analyteId}>
+                                <td>{analyte.analyteName}</td>
+                                <td>{analyte.conditionExpression || 'N/A'}</td>
+                                <td>{analyte.classification || 'N/A'}</td>
+                                <td>{analyte.autoComment || 'N/A'}</td>
+                                <td>{analyte.reflexActionText || 'N/A'}</td>
+                                <td>{analyte.priority || 'N/A'}</td>
+                                <td>{analyte.ruleSource || 'N/A'}</td>
                                 <td>
-                                    <button onClick={() => setEditingRule(rule)} className="text-indigo-600 hover:text-indigo-900">Edit</button>
+                                    <button onClick={() => handleEdit(analyte)} className="text-indigo-600 hover:text-indigo-900">
+                                        {analyte.ruleSource === 'Organization' ? 'Edit' : 'Override'}
+                                    </button>
                                 </td>
                             </tr>
                         ))}
                     </tbody>
                 </table>
+
                 {editingRule && (
                     <div className="mt-4">
-                        <h3 className="text-lg font-bold mb-2">{editingRule.id ? 'Edit Rule' : 'Add New Rule'}</h3>
+                        <h3 className="text-lg font-bold mb-2">Editing Rule for {editingRule.analyteName}</h3>
                         <div className="grid grid-cols-2 gap-4">
                             <input type="text" placeholder="Condition (e.g., result > 100)" value={editingRule.conditionExpression || ''} onChange={e => setEditingRule({ ...editingRule, conditionExpression: e.target.value })} className="border p-2 rounded" />
                             <input type="text" placeholder="Classification" value={editingRule.classification || ''} onChange={e => setEditingRule({ ...editingRule, classification: e.target.value })} className="border p-2 rounded" />
@@ -109,6 +119,7 @@ const InterpretationRuleModal: React.FC<InterpretationRuleModalProps> = ({ test,
                         </div>
                     </div>
                 )}
+
                 <div className="mt-6 text-right">
                     <button onClick={onClose} className="bg-gray-500 text-white px-4 py-2 rounded-md">Close</button>
                 </div>
