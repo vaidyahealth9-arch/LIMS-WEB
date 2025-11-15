@@ -56,7 +56,10 @@ export interface PatientRegistrationResponse {
 
 export interface Test {
     id: string;
+    testName: string;
     name: string;
+    department: string;
+    method: string;
     // Add other test properties as needed
 }
 
@@ -199,6 +202,21 @@ export interface TestInterpretationRule {
     reflexActionText: string | null;
     priority: 'Info' | 'Critical';
 }
+
+export type InterpretationRule = {
+  id?: number;
+  organizationId?: number;
+  analyteId: number;
+  analyteName: string;
+  conditionExpression?: string;
+  classification?: string;
+  autoComment?: string;
+  reflexActionText?: string;
+  priority?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  ruleSource?: 'Organization' | 'Global';
+};
 
 export interface Organization {
     id: string;

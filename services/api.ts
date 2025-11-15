@@ -410,3 +410,21 @@ export const searchBills = (
     }
     return fetchApi<Paginated<Bill>>(`${API_BASE_URL}/bills/search?${params.toString()}`);
 };
+
+export const getInterpretationRules = (organizationId: string, testId: string): Promise<InterpretationRule[]> => {
+    return fetchApi<InterpretationRule[]>(`${API_BASE_URL}/interpretation-rules?organizationId=${organizationId}&testId=${testId}`);
+};
+
+export const createInterpretationRule = (data: Partial<InterpretationRule>): Promise<InterpretationRule> => {
+    return fetchApi<InterpretationRule>(`${API_BASE_URL}/interpretation-rules`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+    });
+};
+
+export const updateInterpretationRule = (ruleId: number, data: Partial<InterpretationRule>): Promise<InterpretationRule> => {
+    return fetchApi<InterpretationRule>(`${API_BASE_URL}/interpretation-rules/${ruleId}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    });
+};

@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import type { Test } from '../types';
 import { getAllTests, getEnabledTestsForLab, enableTestForLab } from '../services/api';
+import InterpretationRuleModal from '../components/InterpretationRuleModal';
 
 
-const ToggleSwitch: React.FC<{ checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean }> = ({ checked, onChange, disabled }) => (
+const ToggleSwitch: React.FC<{ checked: boolean; onChange: (checked: boolean) => void; disabled?: boolean, testId: string }> = ({ checked, onChange, disabled, testId }) => (
     <label className="relative inline-flex items-center cursor-pointer">
-        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only peer" disabled={disabled} />
+        <input type="checkbox" checked={checked} onChange={(e) => onChange(e.target.checked)} className="sr-only peer" disabled={disabled} data-testid={`toggle-${testId}`} />
         <div className="w-11 h-6 bg-gray-200 rounded-full peer peer-focus:ring-4 peer-focus:ring-blue-300 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
     </label>
 );
@@ -18,6 +19,7 @@ const LabManagement: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [updatingTests, setUpdatingTests] = useState<Set<string>>(new Set());
+    const [selectedTest, setSelectedTest] = useState<Test | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
@@ -33,6 +35,8 @@ const LabManagement: React.FC = () => {
                     getAllTests(),
                     getEnabledTestsForLab(orgId)
                 ]);
+                console.log('masterList', masterList);
+                console.log('labConfiguration', labConfiguration);
 
                 const enabledTestsMap = new Map<string, number>();
                 labConfiguration.forEach(config => {
@@ -144,6 +148,7 @@ const LabManagement: React.FC = () => {
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method</th>
                                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lab Price</th>
                                 <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Perform Test</th>
+                                <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
@@ -180,7 +185,17 @@ const LabManagement: React.FC = () => {
                                                 checked={isTestEnabled}
                                                 onChange={(isEnabled) => handleToggleTest(test.id, isEnabled)}
                                                 disabled={isUpdating}
+                                                testId={test.id}
                                             />
+                                        </td>
+                                        <td className="px-4 py-4 whitespace-nowrap text-center">
+                                            <button
+                                                onClick={() => setSelectedTest(test)}
+                                                className="text-indigo-600 hover:text-indigo-900"
+                                                disabled={!isTestEnabled}
+                                            >
+                                                Manage Rules
+                                            </button>
                                         </td>
                                     </tr>
                                 );
@@ -188,6 +203,13 @@ const LabManagement: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
+            )}
+            {selectedTest && (
+                <InterpretationRuleModal
+                    test={selectedTest}
+                    organizationId={localStorage.getItem('organizationId')!}
+                    onClose={() => setSelectedTest(null)}
+                />
             )}
         </div>
     );
