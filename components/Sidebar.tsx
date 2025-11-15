@@ -26,12 +26,12 @@ const Sidebar: React.FC = () => {
             }}>
                 <img 
                     src="/images/haleonelogo.png" 
-                    alt="HaleOne LIMS" 
+                    alt="Vaidya Labs" 
                     className="h-20 w-auto object-contain"
                 />
                 <div className="flex flex-col">
                     <h1 className="text-xl font-bold text-white tracking-tight leading-tight">Vaidya Health</h1>
-                    <span className="text-sm font-semibold text-cyan-100 tracking-wide">LIMS</span>
+                    <span className="text-sm font-semibold text-cyan-100 tracking-wide">VaidyaLab</span>
                 </div>
             </div>
             <nav className="mt-6 px-3">
