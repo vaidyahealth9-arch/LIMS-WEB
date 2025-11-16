@@ -131,6 +131,13 @@ export interface BilledTest {
     price: number;
 }
 
+export interface ServiceRequestAnalyte {
+    analyteId: number;
+    analyteName: string;
+    unit: string;
+    interpretationRules: InterpretationRule[];
+}
+
 export interface TestResult {
     id: string;
     testName: string;

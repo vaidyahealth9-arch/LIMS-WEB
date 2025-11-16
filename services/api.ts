@@ -1,5 +1,5 @@
 
-import type { Test, OrganizationTest, Unit, SpecimenType, TestAnalyte, ReferenceRange, TestInterpretationRule, Organization, User, Patient, Encounter, ServiceRequest, Specimen, Observation, Bill, PatientRegistrationResponse, BillableDetails } from '../types';
+import type { Test, OrganizationTest, Unit, SpecimenType, TestAnalyte, ReferenceRange, TestInterpretationRule, Organization, User, Patient, Encounter, ServiceRequest, Specimen, Observation, Bill, PatientRegistrationResponse, BillableDetails, ServiceRequestAnalyte } from '../types';
 
 // Use relative /api path in production so requests go through nginx proxy
 const API_BASE_URL = '/api';
@@ -288,6 +288,10 @@ export const updateEncounterStatus = (encounterId: string, data: any): Promise<E
 
 export const getServiceRequestById = (serviceRequestId: string): Promise<ServiceRequest> => {
     return fetchApi<ServiceRequest>(`${API_BASE_URL}/service-requests/${serviceRequestId}`);
+};
+
+export const getServiceRequestAnalytes = (serviceRequestId: number): Promise<ServiceRequestAnalyte[]> => {
+    return fetchApi<ServiceRequestAnalyte[]>(`${API_BASE_URL}/service-requests/${serviceRequestId}/analytes`);
 };
 
 export const updateServiceRequestStatus = (serviceRequestId: string, data: any): Promise<ServiceRequest> => {
