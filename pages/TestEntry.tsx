@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import type { ServiceRequest, TestResult } from '../types';
-import { searchServiceRequests, createObservationForServiceRequest } from '../services/api';
+import type { ServiceRequest, ServiceRequestAnalyte, TestResult } from '../types';
+import { searchServiceRequests, createObservationForServiceRequest, getServiceRequestAnalytes } from '../services/api';
 
 const TestEntry: React.FC = () => {
     const navigate = useNavigate();
     const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
     const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
+    const [analytes, setAnalytes] = useState<ServiceRequestAnalyte[]>([]);
     const [results, setResults] = useState<any[]>([]);
     
     const [searchQuery, setSearchQuery] = useState('');
@@ -92,27 +93,35 @@ const TestEntry: React.FC = () => {
         setEndDate(today.toISOString().split('T')[0]);
     };
 
-    const handleSelectRequest = (request: ServiceRequest) => {
+    const handleSelectRequest = async (request: ServiceRequest) => {
         setSelectedRequest(request);
-        const initialResults: any[] = [];
-        request.requestedTests.forEach(test => {
-            if (test.analytes) {
-                test.analytes.forEach(analyte => {
-                    initialResults.push({
-                        id: analyte.analyteId.toString(),
-                        testName: analyte.analyteName,
-                        observedValue: '',
-                        machineValue: '',
-                        units: analyte.unit,
-                        normalRange: analyte.referenceRanges && analyte.referenceRanges.length > 0 ? analyte.referenceRanges[0].textRange : 'N/A',
-                        comments: '',
-                        specimenId: test.barcode,
-                        analyteId: analyte.analyteId
-                    });
-                });
-            }
-        });
-        setResults(initialResults);
+        try {
+            const fetchedAnalytes = await getServiceRequestAnalytes(request.id);
+            setAnalytes(fetchedAnalytes);
+
+            // Assumption: The service request may have multiple tests, each with its own specimen.
+            // For simplicity in this context, we'll find the first available specimen barcode
+            // and associate it with all analytes for this service request.
+            // This may need to be refined if analytes can be linked to different specimens.
+            const specimenId = request.requestedTests.find(t => t.specimenBarcodes && t.specimenBarcodes.length > 0)?.specimenBarcodes[0] || 'N/A';
+
+            const initialResults = fetchedAnalytes.map(analyte => ({
+                id: analyte.analyteId.toString(),
+                testName: analyte.analyteName,
+                observedValue: '',
+                machineValue: '',
+                units: analyte.unit,
+                normalRange: 'N/A', // Data not available in the new /analytes API response
+                comments: '',
+                specimenId: specimenId,
+                analyteId: analyte.analyteId,
+                interpretationRules: analyte.interpretationRules,
+            }));
+            setResults(initialResults);
+        } catch (error) {
+            console.error('Failed to fetch analytes:', error);
+            setResults([]);
+        }
     };
 
     const handleResultChange = (id: string, field: string, value: string) => {
