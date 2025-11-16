@@ -75,7 +75,7 @@ export function LoginPage() {
       }}>
         <img 
           src="/images/index.png" 
-          alt="LIMS - Laboratory Information Management System"
+          alt="Vaidya Labs"
           style={{ 
             maxWidth: isMobile ? '100vw' : '90vw',
             maxHeight: isMobile ? '100vh' : '90vh',
