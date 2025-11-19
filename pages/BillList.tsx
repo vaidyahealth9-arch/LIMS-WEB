@@ -455,7 +455,7 @@ export const BillList: React.FC = () => {
                                 <div className="flex justify-between items-start">
                                     <div>
                                         <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Issued By</h3>
-                                        <p className="text-lg font-bold text-slate-800">HaleOne Healthcare</p>
+                                        <p className="text-lg font-bold text-slate-800">Vaidya Labs</p>
                                         <p className="text-sm text-gray-600 mt-1">Laboratory Information Management System</p>
                                     </div>
                                     <div className="text-right">
