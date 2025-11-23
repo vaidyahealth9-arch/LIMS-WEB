@@ -135,10 +135,22 @@ export interface ServiceRequestAnalyte {
     analyteId: number;
     analyteName: string;
     unit: string;
-    interpretationRules: InterpretationRule[];
+    interpretationRule: InterpretationRule | null;
+}
+
+export interface GroupedAnalyte {
+    testId: number;
+    testName: string;
+    analytes: ServiceRequestAnalyte[];
 }
 
 export interface TestResult {
+    id: string;
+    testName: string;
+    observedValue: string;
+}
+
+export interface ResultEntry {
     id: string;
     testName: string;
     observedValue: string;
@@ -146,6 +158,9 @@ export interface TestResult {
     units: string;
     normalRange: string;
     comments: string;
+    specimenId: string;
+    analyteId: number;
+    interpretationRule: InterpretationRule | null;
 }
 
 export interface IrisWorklistItem {
