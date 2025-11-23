@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import type { ServiceRequest, ServiceRequestAnalyte, TestResult } from '../types';
+import type { ServiceRequest, GroupedAnalyte, ResultEntry } from '../types';
 import { searchServiceRequests, createObservationForServiceRequest, getServiceRequestAnalytes } from '../services/api';
 
 const TestEntry: React.FC = () => {
     const navigate = useNavigate();
     const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
     const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
-    const [analytes, setAnalytes] = useState<ServiceRequestAnalyte[]>([]);
-    const [results, setResults] = useState<any[]>([]);
+    const [analytes, setAnalytes] = useState<GroupedAnalyte[]>([]);
+    const [results, setResults] = useState<{ [key: string]: ResultEntry }>({});
     
     const [searchQuery, setSearchQuery] = useState('');
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -105,18 +105,23 @@ const TestEntry: React.FC = () => {
             // This may need to be refined if analytes can be linked to different specimens.
             const specimenId = request.requestedTests.find(t => t.specimenBarcodes && t.specimenBarcodes.length > 0)?.specimenBarcodes[0] || 'N/A';
 
-            const initialResults = fetchedAnalytes.map(analyte => ({
-                id: analyte.analyteId.toString(),
-                testName: analyte.analyteName,
-                observedValue: '',
-                machineValue: '',
-                units: analyte.unit,
-                normalRange: 'N/A', // Data not available in the new /analytes API response
-                comments: '',
-                specimenId: specimenId,
-                analyteId: analyte.analyteId,
-                interpretationRules: analyte.interpretationRules,
-            }));
+            const initialResults = {};
+            fetchedAnalytes.forEach(group => {
+                group.analytes.forEach(analyte => {
+                    initialResults[analyte.analyteId] = {
+                        id: analyte.analyteId.toString(),
+                        testName: group.testName,
+                        observedValue: '',
+                        machineValue: '',
+                        units: analyte.unit,
+                        normalRange: 'N/A',
+                        comments: '',
+                        specimenId: specimenId,
+                        analyteId: analyte.analyteId,
+                        interpretationRule: analyte.interpretationRule,
+                    };
+                });
+            });
             setResults(initialResults);
         } catch (error) {
             console.error('Failed to fetch analytes:', error);
@@ -125,14 +130,20 @@ const TestEntry: React.FC = () => {
     };
 
     const handleResultChange = (id: string, field: string, value: string) => {
-        setResults(results.map(r => r.id === id ? { ...r, [field]: value } : r));
+        setResults(prevResults => ({
+            ...prevResults,
+            [id]: {
+                ...prevResults[id],
+                [field]: value,
+            },
+        }));
     };
 
     const handleApprove = async () => {
         if (!selectedRequest) return;
 
         try {
-            const observationPromises = results
+            const observationPromises = Object.values(results)
                 .filter(result => result.observedValue)
                 .map(result => {
                     // if (!result.specimenId) {
@@ -325,36 +336,53 @@ const TestEntry: React.FC = () => {
                         <h3 className="text-xl font-bold text-gray-800">Data Entry for {selectedRequest.patientName}</h3>
                         <p className="text-sm text-gray-500">Status: {selectedRequest.status}</p>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Test</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Observed Value</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Machine Value</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Units</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Normal Range</th>
-                                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Comments</th>
-                                </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {results.map(r => (
-                                    <tr key={r.id}>
-                                        <td className="px-4 py-2 font-medium">{r.testName}</td>
-                                        <td className="px-4 py-2">
-                                            <input type="text" value={r.observedValue} onChange={(e) => handleResultChange(r.id, 'observedValue', e.target.value)} className={`w-28 px-2 py-1 border rounded-md ${!r.observedValue && r.machineValue ? '' : !r.observedValue ? 'border-red-400 ring-red-300 ring-1' : 'border-gray-300'}`} />
-                                        </td>
-                                        <td className="px-4 py-2">{r.machineValue || 'N/A'}</td>
-                                        <td className="px-4 py-2">{r.units}</td>
-                                        <td className="px-4 py-2">{r.normalRange}</td>
-                                        <td className="px-4 py-2">
-                                            <input type="text" value={r.comments} onChange={(e) => handleResultChange(r.id, 'comments', e.target.value)} className="w-full px-2 py-1 border border-gray-300 rounded-md" />
-                                        </td>
+                    {analytes.map(group => (
+                        <div key={group.testId} className="overflow-x-auto mb-6">
+                            <h4 className="text-lg font-bold text-gray-700 mb-2">{group.testName}</h4>
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Analyte</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Observed Value</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Machine Value</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Units</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Normal Range</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Comments</th>
                                     </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                    {group.analytes.map(analyte => {
+                                        const result = results[analyte.analyteId];
+                                        if (!result) return null;
+                                        return (
+                                            <tr key={analyte.analyteId}>
+                                                <td className="px-4 py-2 font-medium">{analyte.analyteName}</td>
+                                                <td className="px-4 py-2">
+                                                    <input
+                                                        type="text"
+                                                        value={result.observedValue}
+                                                        onChange={(e) => handleResultChange(result.id, 'observedValue', e.target.value)}
+                                                        className={`w-28 px-2 py-1 border rounded-md ${!result.observedValue && result.machineValue ? '' : !result.observedValue ? 'border-red-400 ring-red-300 ring-1' : 'border-gray-300'}`}
+                                                    />
+                                                </td>
+                                                <td className="px-4 py-2">{result.machineValue || 'N/A'}</td>
+                                                <td className="px-4 py-2">{result.units}</td>
+                                                <td className="px-4 py-2">{result.normalRange}</td>
+                                                <td className="px-4 py-2">
+                                                    <input
+                                                        type="text"
+                                                        value={result.comments}
+                                                        onChange={(e) => handleResultChange(result.id, 'comments', e.target.value)}
+                                                        className="w-full px-2 py-1 border border-gray-300 rounded-md"
+                                                    />
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    ))}
                     <div className="mt-6 flex justify-end space-x-4">
                         {/* <div className="text-sm">
                             <p className="font-semibold">For Technician:</p>
