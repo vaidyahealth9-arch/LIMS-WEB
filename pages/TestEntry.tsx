@@ -354,9 +354,8 @@ const TestEntry: React.FC = () => {
                                     <tr>
                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Analyte</th>
                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Observed Value</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Machine Value</th>
                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Units</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Normal Range</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Interpretation Rule</th>
                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Comments</th>
                                     </tr>
                                 </thead>
@@ -375,9 +374,8 @@ const TestEntry: React.FC = () => {
                                                         className={`w-28 px-2 py-1 border rounded-md ${!result.observedValue && result.machineValue ? '' : !result.observedValue ? 'border-red-400 ring-red-300 ring-1' : 'border-gray-300'}`}
                                                     />
                                                 </td>
-                                                <td className="px-4 py-2">{result.machineValue || 'N/A'}</td>
                                                 <td className="px-4 py-2">{result.units}</td>
-                                                <td className="px-4 py-2">{result.normalRange}</td>
+                                                <td className="px-4 py-2">{result.interpretationRule?.conditionExpression || 'N/A'}</td>
                                                 <td className="px-4 py-2">
                                                     <input
                                                         type="text"
