@@ -93,41 +93,51 @@ const TestEntry: React.FC = () => {
         setEndDate(today.toISOString().split('T')[0]);
     };
 
-    const handleSelectRequest = async (request: ServiceRequest) => {
+    const handleSelectRequest = (request: ServiceRequest) => {
         setSelectedRequest(request);
-        try {
-            const fetchedAnalytes = await getServiceRequestAnalytes(request.id);
-            setAnalytes(fetchedAnalytes);
-
-            // Assumption: The service request may have multiple tests, each with its own specimen.
-            // For simplicity in this context, we'll find the first available specimen barcode
-            // and associate it with all analytes for this service request.
-            // This may need to be refined if analytes can be linked to different specimens.
-            const specimenId = request.requestedTests.find(t => t.specimenBarcodes && t.specimenBarcodes.length > 0)?.specimenBarcodes[0] || 'N/A';
-
-            const initialResults = {};
-            fetchedAnalytes.forEach(group => {
-                group.analytes.forEach(analyte => {
-                    initialResults[analyte.analyteId] = {
-                        id: analyte.analyteId.toString(),
-                        testName: group.testName,
-                        observedValue: '',
-                        machineValue: '',
-                        units: analyte.unit,
-                        normalRange: 'N/A',
-                        comments: '',
-                        specimenId: specimenId,
-                        analyteId: analyte.analyteId,
-                        interpretationRule: analyte.interpretationRule,
-                    };
-                });
-            });
-            setResults(initialResults);
-        } catch (error) {
-            console.error('Failed to fetch analytes:', error);
-            setResults([]);
-        }
     };
+
+    useEffect(() => {
+        if (!selectedRequest) {
+            setAnalytes([]);
+            setResults({});
+            return;
+        }
+
+        const fetchAnalytes = async () => {
+            try {
+                const fetchedAnalytes = await getServiceRequestAnalytes(selectedRequest.id);
+                setAnalytes(fetchedAnalytes);
+
+                const specimenId = selectedRequest.requestedTests.find(t => t.specimenBarcodes && t.specimenBarcodes.length > 0)?.specimenBarcodes[0] || 'N/A';
+
+                const initialResults = {};
+                fetchedAnalytes.forEach(group => {
+                    group.analytes.forEach(analyte => {
+                        initialResults[analyte.analyteId] = {
+                            id: analyte.analyteId.toString(),
+                            testName: group.testName,
+                            observedValue: '',
+                            machineValue: '',
+                            units: analyte.unit,
+                            normalRange: 'N/A',
+                            comments: '',
+                            specimenId: specimenId,
+                            analyteId: analyte.analyteId,
+                            interpretationRule: analyte.interpretationRule,
+                        };
+                    });
+                });
+                setResults(initialResults);
+            } catch (error) {
+                console.error('Failed to fetch analytes:', error);
+                setAnalytes([]);
+                setResults({});
+            }
+        };
+
+        fetchAnalytes();
+    }, [selectedRequest]);
 
     const handleResultChange = (id: string, field: string, value: string) => {
         setResults(prevResults => ({
