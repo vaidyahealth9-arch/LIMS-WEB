@@ -55,3 +55,4 @@
 .notification-exit {
     animation: slideOut 0.3s ease-in;
 }
+.page-break { page-break-before: always; }

@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getObservationsForServiceRequest, updateObservation } from '../services/api'; // Assuming updateObservation exists
+import { getObservationsForServiceRequest, updateObservation, getEncounterById } from '../services/api';
 import { useNotifications } from '../services/NotificationContext';
+import { TestReport } from '../components/TestReport';
+import type { Encounter } from '../types';
 
 const ViewObservations: React.FC = () => {
     const location = useLocation();
@@ -11,6 +13,8 @@ const ViewObservations: React.FC = () => {
 
     const [observations, setObservations] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
+    const [encounter, setEncounter] = useState<Encounter | null>(null);
+    const [isPrinting, setIsPrinting] = useState(false);
 
     useEffect(() => {
         const fetchObservations = async () => {
@@ -39,6 +43,26 @@ const ViewObservations: React.FC = () => {
         fetchObservations();
     }, [serviceRequest, addNotification]);
 
+    useEffect(() => {
+        const fetchEncounterDetails = async () => {
+            if (serviceRequest && serviceRequest.encounterId) {
+                try {
+                    const enc = await getEncounterById(serviceRequest.encounterId.toString());
+                    setEncounter(enc);
+                } catch (error) {
+                    console.error("Failed to fetch encounter details", error);
+                    addNotification({
+                        type: 'error',
+                        title: 'Failed to Fetch Encounter Details',
+                        message: 'Could not load encounter details for printing.',
+                        persist: true,
+                    });
+                }
+            }
+        };
+        fetchEncounterDetails();
+    }, [serviceRequest, addNotification]);
+
     const handleValueChange = (index: number, value: string) => {
         const newObservations = [...observations];
         newObservations[index].valueNumeric = parseFloat(value); // Assuming numeric input
@@ -50,6 +74,64 @@ const ViewObservations: React.FC = () => {
         newObservations[index].isEditing = !newObservations[index].isEditing;
         setObservations(newObservations);
     };
+
+    const handlePrint = () => {
+        if (observations.length > 0 && encounter) {
+            setIsPrinting(true);
+        } else {
+            addNotification({
+                type: 'info',
+                title: 'No Data',
+                message: 'No observations available to print.',
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (isPrinting) {
+            setTimeout(() => {
+                const printContent = document.getElementById('printable-report')?.innerHTML;
+                if (printContent) {
+                    const printWindow = window.open('', '_blank');
+                    if (printWindow) {
+                        printWindow.document.write(`
+                            <!DOCTYPE html>
+                            <html>
+                            <head>
+                                <title>Test Report</title>
+                                <script src="https://cdn.tailwindcss.com"></script>
+                                <style>
+                                    @page { size: A4; margin: 1cm; }
+                                    body { margin: 0; padding: 20px; font-family: system-ui, -apple-system, sans-serif; }
+                                    .page-break { page-break-before: always; }
+                                    @media print {
+                                        .print-hide { display: none !important; }
+                                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                                    }
+                                </style>
+                            </head>
+                            <body>
+                                ${printContent}
+                                <script>
+                                    window.onload = function() {
+                                        setTimeout(function() {
+                                            window.print();
+                                            window.onafterprint = function() {
+                                                window.close();
+                                            };
+                                        }, 250);
+                                    };
+                                </script>
+                            </body>
+                            </html>
+                        `);
+                        printWindow.document.close();
+                    }
+                }
+                setIsPrinting(false);
+            }, 100);
+        }
+    }, [isPrinting, observations, encounter]);
 
     const handleSave = async (index: number) => {
         const observation = observations[index];
@@ -148,8 +230,19 @@ const ViewObservations: React.FC = () => {
                     >
                         Back
                     </button>
+                    <button
+                        onClick={handlePrint}
+                        className="ml-4 px-8 py-3 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg"
+                    >
+                        Print Report
+                    </button>
                 </div>
             </div>
+            {isPrinting && encounter && (
+                <div id="printable-report" style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: '210mm' }}>
+                    <TestReport encounter={encounter} observations={observations} />
+                </div>
+            )}
         </div>
     );
 };
