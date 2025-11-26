@@ -276,7 +276,7 @@ export const createServiceRequest = (data: any): Promise<ServiceRequest> => {
 };
 
 export const getEncounterById = (encounterId: string): Promise<Encounter> => {
-    return fetchApi<Encounter>(`${API_BASE_URL}/encounters/${encounterId}`);
+    return fetchApi<Encounter>(`${API_BASE_URL}/encounters/${encounterId}/details`);
 };
 
 export const updateEncounterStatus = (encounterId: string, data: any): Promise<Encounter> => {
