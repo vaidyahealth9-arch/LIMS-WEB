@@ -258,9 +258,13 @@ export interface Encounter {
     id: number;
     patientId: number;
     patientName: string;
+    patientAge: string;
+    patientGender: string;
     mrnId: string;
     referenceDoctor: string;
     date: string;
+    collectionDate: string;
+    sampleType: string;
     status: 'PLANNED' | 'ARRIVED' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED';
     tests: string[];
     localEncounterValue?: string;
