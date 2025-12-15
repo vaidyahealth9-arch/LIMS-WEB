@@ -370,7 +370,7 @@ const TestEntry: React.FC = () => {
                                                     />
                                                 </td>
                                                 <td className="px-4 py-2">{result.units}</td>
-                                                <td className="px-4 py-2">{result?.biologicalRefInterval || 'N/A'}</td>
+                                                <td className="px-4 py-2">{analyte?.biologicalRefInterval || 'N/A'}</td>
                                                 <td className="px-4 py-2">
                                                     <input
                                                         type="text"
