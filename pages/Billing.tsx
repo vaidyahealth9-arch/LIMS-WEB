@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import type { BillableTest, Encounter } from '../types';
-import { createBill, getBillableDetailsForEncounter } from '../services/api';
+import type { BillableTest, Encounter, ServiceRequest } from '../types';
+import { createBill, getBillableDetailsForEncounter, getServiceRequestById } from '../services/api';
 
 export const Billing: React.FC<{
     isOpen: boolean;
@@ -11,6 +11,8 @@ export const Billing: React.FC<{
     // State for Bill Creation Modal
     const [billedTests, setBilledTests] = useState<BillableTest[]>([]);
     const [serviceRequestIds, setServiceRequestIds] = useState<number[]>([]);
+    const [fullServiceRequests, setFullServiceRequests] = useState<ServiceRequest[]>([]);
+    const [billCreatedSuccessfully, setBillCreatedSuccessfully] = useState(false);
     const [isDuePayment, setIsDuePayment] = useState(false);
     const [discount, setDiscount] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState('CASH');
@@ -21,24 +23,29 @@ export const Billing: React.FC<{
     // Effect for fetching billable details for modal
     useEffect(() => {
         if (isOpen && encounter) {
-            const fetchBillableDetails = async () => {
+            const fetchDetails = async () => {
                 try {
                     const details = await getBillableDetailsForEncounter(encounter.id.toString());
                     const allTests = details.serviceRequests.flatMap(sr => sr.tests);
                     const ids = details.serviceRequests.map(sr => sr.serviceRequestId);
                     setBilledTests(allTests);
                     setServiceRequestIds(ids);
+
+                    const srPromises = ids.map(id => getServiceRequestById(id.toString()));
+                    const fetchedServiceRequests = await Promise.all(srPromises);
+                    setFullServiceRequests(fetchedServiceRequests);
                 } catch (error) {
                     console.error('Failed to fetch billable details:', error);
                 }
             };
-            fetchBillableDetails();
+            fetchDetails();
             
             setDiscount(0);
             setPaymentMethod('CASH');
             setPaidAmount(0);
             setNotes('');
             setDueDate('');
+            setBillCreatedSuccessfully(false);
         }
     }, [isOpen, encounter]);
 
@@ -69,9 +76,8 @@ export const Billing: React.FC<{
 
         try {
             await createBill(billData);
-            alert('Bill created successfully!');
+            setBillCreatedSuccessfully(true);
             onBillCreated && onBillCreated();
-            onClose && onClose();
         } catch (error) {
             console.error('Failed to create bill:', error);
             alert(`Failed to create bill: ${(error as Error).message}`);
@@ -79,6 +85,30 @@ export const Billing: React.FC<{
     };
 
     if (!isOpen || !encounter) return null;
+
+    if (billCreatedSuccessfully) {
+        return (
+            <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+                <div className="relative top-10 mx-auto p-8 border w-full max-w-lg shadow-lg rounded-md bg-white">
+                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Bill Created Successfully!</h2>
+                    <div className="bg-gray-50 p-4 rounded-lg border border-gray-200 mb-6">
+                        <h3 className="font-semibold text-lg mb-2">Test Barcodes</h3>
+                        {fullServiceRequests.flatMap(sr => sr.requestedTests).map(test => (
+                            <div key={test.testId} className="flex justify-between items-center py-1">
+                                <span className="text-sm font-medium text-gray-700">{test.testName}</span>
+                                <span className="text-sm font-semibold text-gray-900 bg-gray-200 px-2 py-0.5 rounded">{test.barcode}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="mt-8 flex justify-end">
+                        <button onClick={() => { setBillCreatedSuccessfully(false); onClose(); }} className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
