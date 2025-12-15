@@ -350,7 +350,7 @@ const TestEntry: React.FC = () => {
                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Analyte</th>
                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Observed Value</th>
                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Units</th>
-                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Interpretation Rule</th>
+                                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Reference Values</th>
                                         <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Comments</th>
                                     </tr>
                                 </thead>
@@ -370,7 +370,7 @@ const TestEntry: React.FC = () => {
                                                     />
                                                 </td>
                                                 <td className="px-4 py-2">{result.units}</td>
-                                                <td className="px-4 py-2">{result.interpretationRule?.conditionExpression || 'N/A'}</td>
+                                                <td className="px-4 py-2">{result?.biologicalRefInterval || 'N/A'}</td>
                                                 <td className="px-4 py-2">
                                                     <input
                                                         type="text"
