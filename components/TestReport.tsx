@@ -7,9 +7,10 @@ import { TestResultTable } from './TestResultTable';
 interface TestReportProps {
   encounter: Encounter | null;
   observations: Observation[];
+  withHeader: boolean;
 }
 
-export const TestReport: React.FC<TestReportProps> = ({ encounter, observations }) => {
+export const TestReport: React.FC<TestReportProps> = ({ encounter, observations, withHeader }) => {
   if (!encounter) {
     return null;
   }
@@ -27,7 +28,7 @@ export const TestReport: React.FC<TestReportProps> = ({ encounter, observations 
     <div className="bg-white p-8">
       {Object.entries(groupedObservations).map(([testName, obs]) => (
         <div key={testName} className="page-break">
-          <ReportHeader />
+          {withHeader && <ReportHeader />}
           <PatientInfo encounter={encounter} />
           <TestResultTable testName={testName} observations={obs} />
         </div>

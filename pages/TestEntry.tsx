@@ -156,10 +156,6 @@ const TestEntry: React.FC = () => {
             const observationPromises = Object.values(results)
                 .filter(result => result.observedValue)
                 .map(result => {
-                    // if (!result.specimenId) {
-                    //     throw new Error(`Specimen ID is missing for analyte ${result.testName}.`);
-                    // }
-
                     const value = isNaN(Number(result.observedValue)) ? { valueString: result.observedValue } : { valueNumeric: Number(result.observedValue) };
                     
                     const observationData = {
@@ -175,7 +171,7 @@ const TestEntry: React.FC = () => {
             await Promise.all(observationPromises);
             
             console.log("All observations created successfully.");
-            // Maybe show a success message
+            alert('Observations approved successfully!');
             setSelectedRequest(null); // Clear selection
             setResults([]);
             // Refetch service requests to update the list
@@ -183,8 +179,13 @@ const TestEntry: React.FC = () => {
 
         } catch (error) {
             console.error("Failed to create observations:", error);
-            // Show an error message to the user, e.g. using a notification system.
-            alert(`Error: ${error.message}`); // Using alert for immediate feedback for the user.
+            alert(`Error: ${error.message}`);
+        }
+    };
+
+    const handlePrint = () => {
+        if (selectedRequest) {
+            navigate('/view-observations', { state: { serviceRequest: selectedRequest } });
         }
     };
 
@@ -199,10 +200,9 @@ const TestEntry: React.FC = () => {
                     <p className="text-sm text-gray-600">Patient worklist for test data entry and verification</p>
                 </div>
                 
-                {/* Filters - Compact Single Row */}
+                {/* Filters */}
                 <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                     <div className="flex items-center gap-3 flex-wrap">
-                        {/* Search */}
                         <div className="flex-1 min-w-[250px]">
                             <input 
                                 type="text" 
@@ -213,7 +213,6 @@ const TestEntry: React.FC = () => {
                             />
                         </div>
 
-                        {/* Date Range */}
                         <div className="flex items-center gap-2">
                             <input 
                                 type="date" 
@@ -230,14 +229,12 @@ const TestEntry: React.FC = () => {
                             />
                         </div>
 
-                        {/* Date Presets */}
                         <div className="flex items-center gap-1.5">
                             <button onClick={() => handleDatePreset('7d')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">7 days</button>
                             <button onClick={() => handleDatePreset('1m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">1 month</button>
                             <button onClick={() => handleDatePreset('3m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">3 months</button>
                         </div>
 
-                        {/* Total Counter */}
                         <div className="flex items-center bg-gradient-to-r from-cyan-50 to-teal-50 px-3 py-2 rounded-lg border border-cyan-200 whitespace-nowrap">
                             <span className="text-xs text-gray-600">Total:</span>
                             <span className="ml-1.5 text-sm font-bold text-cyan-700">{serviceRequests.length}</span>
@@ -245,7 +242,6 @@ const TestEntry: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Clear Filters */}
                     {searchQuery && (
                         <div className="flex items-center justify-start mt-3 pt-3 border-t border-gray-200">
                             <button
@@ -316,7 +312,6 @@ const TestEntry: React.FC = () => {
                     )}
                 </div>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                     <div className="flex justify-between items-center mt-6 px-4">
                         <button
@@ -392,18 +387,10 @@ const TestEntry: React.FC = () => {
                         </div>
                     ))}
                     <div className="mt-6 flex justify-end space-x-4">
-                        {/* <div className="text-sm">
-                            <p className="font-semibold">For Technician:</p>
-                            <div className="flex space-x-2 mt-1">
-                                <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100" disabled={!isTechnicianRole}>Save</button>
-                                <button className="px-4 py-2 bg-yellow-500 text-white font-semibold rounded-lg shadow-md hover:bg-yellow-600" disabled={!isTechnicianRole}>Send for Verification</button>
-                            </div>
-                        </div> */}
                         <div className="text-sm">
-                            {/* <p className="font-semibold">For Doctor:</p> */}
-                             <div className="flex space-x-2 mt-1">
-                                {/* <button className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100" disabled={!isDoctorRole}>Save</button> */}
-                                <button onClick={handleApprove} className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">Approve & Print</button>
+                            <div className="flex space-x-2 mt-1">
+                                <button onClick={handleApprove} className="px-4 py-2 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700">Approve</button>
+                                <button onClick={handlePrint} className="px-4 py-2 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700">Print</button>
                             </div>
                         </div>
                     </div>
