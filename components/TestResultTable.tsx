@@ -23,7 +23,7 @@ export const TestResultTable: React.FC<TestResultTableProps> = ({ testName, obse
           {observations.map((obs) => (
             <tr key={obs.analyteId}>
               <td className="px-4 py-3 text-sm">{obs.analyteName}</td>
-              <td className="px-4 py-3 text-sm">{obs.value}</td>
+              <td className="px-4 py-3 text-sm">{obs.valueString || obs.valueNumeric}</td>
               <td className="px-4 py-3 text-sm">{obs.unit}</td>
               <td className="px-4 py-3 text-sm">{obs.referenceRange}</td>
             </tr>

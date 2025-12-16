@@ -15,6 +15,7 @@ const ViewObservations: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [encounter, setEncounter] = useState<Encounter | null>(null);
     const [isPrinting, setIsPrinting] = useState(false);
+    const [printWithHeader, setPrintWithHeader] = useState(true);
 
     useEffect(() => {
         const fetchObservations = async () => {
@@ -65,7 +66,7 @@ const ViewObservations: React.FC = () => {
 
     const handleValueChange = (index: number, value: string) => {
         const newObservations = [...observations];
-        newObservations[index].valueNumeric = parseFloat(value); // Assuming numeric input
+        newObservations[index].valueNumeric = parseFloat(value);
         setObservations(newObservations);
     };
 
@@ -75,8 +76,9 @@ const ViewObservations: React.FC = () => {
         setObservations(newObservations);
     };
 
-    const handlePrint = () => {
+    const handlePrint = (withHeader: boolean) => {
         if (observations.length > 0 && encounter) {
+            setPrintWithHeader(withHeader);
             setIsPrinting(true);
         } else {
             addNotification({
@@ -131,7 +133,7 @@ const ViewObservations: React.FC = () => {
                 setIsPrinting(false);
             }, 100);
         }
-    }, [isPrinting, observations, encounter]);
+    }, [isPrinting, observations, encounter, printWithHeader]);
 
     const handleSave = async (index: number) => {
         const observation = observations[index];
@@ -199,7 +201,7 @@ const ViewObservations: React.FC = () => {
                                 <div className="flex items-center space-x-4">
                                     {obs.isEditing ? (
                                         <input
-                                            type="number" // Change to number input
+                                            type="number"
                                             value={obs.valueNumeric !== null ? obs.valueNumeric : ''}
                                             onChange={(e) => handleValueChange(index, e.target.value)}
                                             className="w-32 px-2 py-1 border-2 border-gray-300 rounded-md shadow-sm focus:ring-2 focus:ring-cyan-500"
@@ -231,16 +233,22 @@ const ViewObservations: React.FC = () => {
                         Back
                     </button>
                     <button
-                        onClick={handlePrint}
+                        onClick={() => handlePrint(true)}
                         className="ml-4 px-8 py-3 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg"
                     >
-                        Print Report
+                        Print with Header
+                    </button>
+                    <button
+                        onClick={() => handlePrint(false)}
+                        className="ml-4 px-8 py-3 bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg"
+                    >
+                        Print without Header
                     </button>
                 </div>
             </div>
             {isPrinting && encounter && (
                 <div id="printable-report" style={{ position: 'absolute', left: '-9999px', top: '-9999px', width: '210mm' }}>
-                    <TestReport encounter={encounter} observations={observations} />
+                    <TestReport encounter={encounter} observations={observations} withHeader={printWithHeader} />
                 </div>
             )}
         </div>

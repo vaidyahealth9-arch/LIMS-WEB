@@ -1,5 +1,5 @@
 
-import type { Test, OrganizationTest, Unit, SpecimenType, TestAnalyte, ReferenceRange, TestInterpretationRule, Organization, User, Patient, Encounter, ServiceRequest, Specimen, Observation, Bill, PatientRegistrationResponse, BillableDetails, ServiceRequestAnalyte, GroupedAnalyte } from '../types';
+import type { Test, OrganizationTest, Unit, SpecimenType, TestAnalyte, ReferenceRange, TestInterpretationRule, Organization, User, Patient, Encounter, ServiceRequest, Specimen, Observation, Bill, PatientRegistrationResponse, BillableDetails, ServiceRequestAnalyte, GroupedAnalyte, InterpretationRule } from '../types';
 
 // Use relative /api path in production so requests go through nginx proxy
 const API_BASE_URL = '/api';
@@ -126,6 +126,7 @@ export const addSpecimenType = (data: any): Promise<SpecimenType> => {
     });
 };
 
+// Creates a new test for a lab.
 export const addTest = (data: any): Promise<Test> => {
     return fetchApi<Test>(`${API_BASE_URL}/tests`, {
         method: 'POST',
@@ -231,6 +232,47 @@ export const registerPatient = (data: any): Promise<PatientRegistrationResponse>
     });
 };
 
+export const importPatientData = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    const token = localStorage.getItem('token');
+    const headers: HeadersInit = {};
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/patients/data/import`, {
+        method: 'POST',
+        headers: headers,
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        try {
+            const errorData = JSON.parse(errorText);
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+        } catch (e) {
+            throw new Error(errorText || `HTTP error! status: ${response.status}`);
+        }
+    }
+
+    return response.text();
+};
+
+export const exportPatientData = async (): Promise<Blob> => {
+    const response = await fetch(`${API_BASE_URL}/patients/data/export`, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.blob();
+};
+
 export const verifyAbha = (patientId: string, data: any): Promise<any> => {
     return fetchApi<any>(`${API_BASE_URL}/patients/${patientId}/abha/verify-otp`, {
         method: 'POST',
@@ -268,6 +310,20 @@ export const createEncounter = (data: any): Promise<Encounter> => {
     });
 };
 
+export const downloadReport = async (serviceRequestId: string, withHeader: boolean = true): Promise<Blob> => {
+    const url = `${API_BASE_URL}/reports/download/${serviceRequestId}?withHeader=${withHeader}`;
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: getAuthHeaders(),
+    });
+
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.blob();
+};
+
 export const createServiceRequest = (data: any): Promise<ServiceRequest> => {
     return fetchApi<ServiceRequest>(`${API_BASE_URL}/service-requests`, {
         method: 'POST',
@@ -276,7 +332,7 @@ export const createServiceRequest = (data: any): Promise<ServiceRequest> => {
 };
 
 export const getEncounterById = (encounterId: string): Promise<Encounter> => {
-    return fetchApi<Encounter>(`${API_BASE_URL}/encounters/${encounterId}`);
+    return fetchApi<Encounter>(`${API_BASE_URL}/encounters/${encounterId}/details`);
 };
 
 export const updateEncounterStatus = (encounterId: string, data: any): Promise<Encounter> => {
