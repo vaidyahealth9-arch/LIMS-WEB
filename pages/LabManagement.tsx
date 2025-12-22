@@ -8,9 +8,17 @@ import {
 } from '../services/api';
 import type { OrganizationTest, Analyte } from '../types';
 import { useNotifications } from '../services/NotificationContext';
+import TestFormModal from '../components/TestFormModal';
+import AnalyteFormModal from '../components/AnalyteFormModal';
 
 const AssignAnalytesModal = ({ isOpen, onClose, test, allAnalytes, onSave }) => {
     const [selectedAnalyteIds, setSelectedAnalyteIds] = useState<Set<number>>(new Set());
+
+    useEffect(() => {
+        // This effect can be used to pre-populate selected analytes if the test object contains them
+        // For now, we'll start with an empty set.
+        setSelectedAnalyteIds(new Set());
+    }, [test, isOpen]);
 
     const handleCheckboxChange = (analyteId: number) => {
         setSelectedAnalyteIds(prev => {
@@ -65,11 +73,13 @@ const LabManagement: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [organizationId, setOrganizationId] = useState<string | null>(null);
 
-    const [testForm, setTestForm] = useState({ testId: '', price: '', isEnabled: true });
-    const [analyteForm, setAnalyteForm] = useState({ analyteId: '', name: '', price: '', code: '', bioReference: '' });
+    const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+    const [isAnalyteModalOpen, setIsAnalyteModalOpen] = useState(false);
+    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedTest, setSelectedTest] = useState<OrganizationTest | null>(null);
+    const [editingTest, setEditingTest] = useState<OrganizationTest | null>(null);
+    const [editingAnalyte, setEditingAnalyte] = useState<Analyte | null>(null);
+    const [assigningTest, setAssigningTest] = useState<OrganizationTest | null>(null);
 
     useEffect(() => {
         const orgId = localStorage.getItem('organizationId');
@@ -105,23 +115,39 @@ const LabManagement: React.FC = () => {
         }
     }, [organizationId]);
 
-    const handleTestFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type, checked } = e.target;
-        setTestForm(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
+    // Modal Openers
+    const handleAddTest = () => {
+        setEditingTest(null);
+        setIsTestModalOpen(true);
     };
 
-    const handleTestFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!organizationId) return;
+    const handleEditTest = (test: OrganizationTest) => {
+        setEditingTest(test);
+        setIsTestModalOpen(true);
+    };
 
+    const handleAddAnalyte = () => {
+        setEditingAnalyte(null);
+        setIsAnalyteModalOpen(true);
+    };
+
+    const handleEditAnalyte = (analyte: Analyte) => {
+        setEditingAnalyte(analyte);
+        setIsAnalyteModalOpen(true);
+    };
+
+    const openAssignAnalyteModal = (test: OrganizationTest) => {
+        setAssigningTest(test);
+        setIsAssignModalOpen(true);
+    };
+
+    // Save Handlers
+    const handleSaveTest = async (testData: any) => {
+        if (!organizationId) return;
         try {
-            await createOrUpdateOrganizationTest(organizationId, {
-                ...testForm,
-                price: parseFloat(testForm.price),
-                testId: parseInt(testForm.testId)
-            });
-            addNotification({ type: 'success', title: 'Test Saved', message: 'Organization test has been saved successfully.' });
-            setTestForm({ testId: '', price: '', isEnabled: true });
+            await createOrUpdateOrganizationTest(organizationId, testData);
+            addNotification({ type: 'success', title: 'Test Saved', message: `Test ${testData.testId} has been saved.` });
+            setIsTestModalOpen(false);
             fetchData();
         } catch (error) {
             const message = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -129,27 +155,12 @@ const LabManagement: React.FC = () => {
         }
     };
 
-    const handleAnalyteFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value } = e.target;
-        setAnalyteForm(prev => ({ ...prev, [name]: value }));
-    };
-
-    const handleAnalyteFormSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSaveAnalyte = async (analyteData: any) => {
         if (!organizationId) return;
-
-        const payload = {
-            analyteId: analyteForm.analyteId ? parseInt(analyteForm.analyteId) : undefined,
-            name: analyteForm.name,
-            price: analyteForm.price ? parseFloat(analyteForm.price) : null,
-            code: analyteForm.code,
-            bioReference: analyteForm.bioReference,
-        };
-
         try {
-            await addOrUpdateAnalyteForOrganization(organizationId, payload);
-            addNotification({ type: 'success', title: 'Analyte Saved', message: 'Analyte has been saved successfully.' });
-            setAnalyteForm({ analyteId: '', name: '', price: '', code: '', bioReference: '' });
+            await addOrUpdateAnalyteForOrganization(organizationId, analyteData);
+            addNotification({ type: 'success', title: 'Analyte Saved', message: `Analyte ${analyteData.name} has been saved.` });
+            setIsAnalyteModalOpen(false);
             fetchData();
         } catch (error) {
             const message = error instanceof Error ? error.message : 'An unknown error occurred';
@@ -157,18 +168,12 @@ const LabManagement: React.FC = () => {
         }
     };
 
-    const openAnalyteModal = (test: OrganizationTest) => {
-        setSelectedTest(test);
-        setIsModalOpen(true);
-    };
-
     const handleSaveAnalytesForTest = async (testId: number, analyteIds: number[]) => {
         if (!organizationId) return;
         try {
             await setAnalytesForOrganizationTest(organizationId, testId.toString(), analyteIds.map(String));
             addNotification({ type: 'success', title: 'Analytes Assigned', message: 'Analytes have been assigned to the test.' });
-            setIsModalOpen(false);
-            setSelectedTest(null);
+            setIsAssignModalOpen(false);
         } catch (error) {
             const message = error instanceof Error ? error.message : 'An unknown error occurred';
             addNotification({ type: 'error', title: 'Failed to Assign Analytes', message, persist: true });
@@ -179,131 +184,96 @@ const LabManagement: React.FC = () => {
         return <div className="p-8">Loading lab management data...</div>;
     }
 
-    const inputClass = "mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500";
     const buttonClass = "px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-500";
     const thClass = "px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase";
     const tdClass = "px-4 py-4 whitespace-nowrap text-gray-500";
 
     return (
-        <div className="container mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="space-y-8">
-                <div className="bg-white p-8 rounded-xl shadow-lg">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Manage Organization Test</h2>
-                    <form onSubmit={handleTestFormSubmit} className="space-y-4">
-                        <div>
-                            <label htmlFor="testId" className="block text-sm font-medium text-gray-700">Test ID</label>
-                            <input type="number" name="testId" id="testId" value={testForm.testId} onChange={handleTestFormChange} required className={inputClass} placeholder="Enter master test ID"/>
-                        </div>
-                        <div>
-                            <label htmlFor="price" className="block text-sm font-medium text-gray-700">Price</label>
-                            <input type="number" step="0.01" name="price" id="price" value={testForm.price} onChange={handleTestFormChange} required className={inputClass} placeholder="e.g., 150.00"/>
-                        </div>
-                        <div className="flex items-center">
-                            <input type="checkbox" name="isEnabled" id="isEnabled" checked={testForm.isEnabled} onChange={handleTestFormChange} className="h-4 w-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"/>
-                            <label htmlFor="isEnabled" className="ml-2 block text-sm text-gray-900">Enable this test</label>
-                        </div>
-                        <div className="text-right">
-                            <button type="submit" className={buttonClass}>Save Test</button>
-                        </div>
-                    </form>
+        <div className="container mx-auto px-4 py-6 space-y-8">
+            <div className="bg-white p-8 rounded-xl shadow-lg">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Available Organization Tests</h2>
+                    <button onClick={handleAddTest} className={buttonClass}>Add New Test</button>
                 </div>
-
-                <div className="bg-white p-8 rounded-xl shadow-lg">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Available Organization Tests</h2>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                                <tr>
-                                    <th className={thClass}>Name</th>
-                                    <th className={thClass}>Local Code</th>
-                                    <th className={thClass}>Price</th>
-                                    <th className={thClass}>Status</th>
-                                    <th className={thClass}>Actions</th>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                            <tr>
+                                <th className={thClass}>Name</th>
+                                <th className={thClass}>Local Code</th>
+                                <th className={thClass}>Price</th>
+                                <th className={thClass}>Status</th>
+                                <th className={thClass}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {orgTests.map(test => (
+                                <tr key={test.testId}>
+                                    <td className={`font-medium text-gray-900 ${tdClass}`}>{test.testName}</td>
+                                    <td className={tdClass}>{test.testLocalCode}</td>
+                                    <td className={tdClass}>${test.price.toFixed(2)}</td>
+                                    <td className={tdClass}>{test.isEnabled ? 'Enabled' : 'Disabled'}</td>
+                                    <td className={`${tdClass} space-x-2`}>
+                                        <button onClick={() => handleEditTest(test)} className="text-indigo-600 hover:text-indigo-900 font-semibold">Edit</button>
+                                        <button onClick={() => openAssignAnalyteModal(test)} className="text-cyan-600 hover:text-cyan-800 font-semibold">Manage Analytes</button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {orgTests.map(test => (
-                                    <tr key={test.testId}>
-                                        <td className={`font-medium text-gray-900 ${tdClass}`}>{test.testName}</td>
-                                        <td className={tdClass}>{test.testLocalCode}</td>
-                                        <td className={tdClass}>${test.price.toFixed(2)}</td>
-                                        <td className={tdClass}>{test.isEnabled ? 'Enabled' : 'Disabled'}</td>
-                                        <td className={tdClass}>
-                                            <button onClick={() => openAnalyteModal(test)} className="text-cyan-600 hover:text-cyan-800 font-semibold">
-                                                Manage Analytes
-                                            </button>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            <div className="space-y-8">
-                 <div className="bg-white p-8 rounded-xl shadow-lg">
-                    <h2 className="text-2xl font-bold text-gray-800 mb-6">Manage Organization Analyte</h2>
-                    <form onSubmit={handleAnalyteFormSubmit} className="space-y-4">
-                        <p className="text-sm text-gray-600">Leave Analyte ID blank to create a new one.</p>
-                        <div>
-                            <label htmlFor="analyteId" className="block text-sm font-medium text-gray-700">Analyte ID (for updates)</label>
-                            <input type="number" name="analyteId" id="analyteId" value={analyteForm.analyteId} onChange={handleAnalyteFormChange} className={inputClass} placeholder="Optional"/>
-                        </div>
-                         <div>
-                            <label htmlFor="name" className="block text-sm font-medium text-gray-700">Analyte Name</label>
-                            <input type="text" name="name" id="name" value={analyteForm.name} onChange={handleAnalyteFormChange} className={inputClass} placeholder="e.g., Glucose" required/>
-                        </div>
-                        <div>
-                            <label htmlFor="code" className="block text-sm font-medium text-gray-700">Code</label>
-                            <input type="text" name="code" id="code" value={analyteForm.code} onChange={handleAnalyteFormChange} className={inputClass} placeholder="e.g., GLU" required/>
-                        </div>
-                        <div>
-                            <label htmlFor="price" className="block text-sm font-medium text-gray-700">Price</label>
-                            <input type="number" step="0.01" name="price" id="price" value={analyteForm.price} onChange={handleAnalyteFormChange} className={inputClass} placeholder="Optional"/>
-                        </div>
-                        <div>
-                            <label htmlFor="bioReference" className="block text-sm font-medium text-gray-700">Bio. Reference</label>
-                            <input type="text" name="bioReference" id="bioReference" value={analyteForm.bioReference} onChange={handleAnalyteFormChange} className={inputClass} placeholder="e.g., 70-110 mg/dL"/>
-                        </div>
-                        <div className="text-right">
-                            <button type="submit" className={buttonClass}>Save Analyte</button>
-                        </div>
-                    </form>
+            <div className="bg-white p-8 rounded-xl shadow-lg">
+                <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-2xl font-bold text-gray-800">Available Organization Analytes</h2>
+                    <button onClick={handleAddAnalyte} className={buttonClass}>Add New Analyte</button>
                 </div>
-
-                <div className="bg-white p-8 rounded-xl shadow-lg">
-                     <h2 className="text-2xl font-bold text-gray-800 mb-6">Available Organization Analytes</h2>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                           <thead className="bg-gray-50">
-                                <tr>
-                                    <th className={thClass}>Name</th>
-                                    <th className={thClass}>Code</th>
-                                    <th className={thClass}>Bio. Reference</th>
-                                    <th className={thClass}>Source</th>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                       <thead className="bg-gray-50">
+                            <tr>
+                                <th className={thClass}>Name</th>
+                                <th className={thClass}>Code</th>
+                                <th className={thClass}>Bio. Reference</th>
+                                <th className={thClass}>Source</th>
+                                <th className={thClass}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                            {analytes.map(analyte => (
+                                <tr key={analyte.id}>
+                                    <td className={`font-medium text-gray-900 ${tdClass}`}>{analyte.name}</td>
+                                    <td className={tdClass}>{analyte.code}</td>
+                                    <td className={tdClass}>{analyte.bioReference}</td>
+                                    <td className={tdClass}>{analyte.isOrgSpecific ? 'Organization' : 'Common'}</td>
+                                    <td className={tdClass}>
+                                        <button onClick={() => handleEditAnalyte(analyte)} className="text-indigo-600 hover:text-indigo-900 font-semibold">Edit</button>
+                                    </td>
                                 </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                                {analytes.map(analyte => (
-                                    <tr key={analyte.id}>
-                                        <td className={`font-medium text-gray-900 ${tdClass}`}>{analyte.name}</td>
-                                        <td className={tdClass}>{analyte.code}</td>
-                                        <td className={tdClass}>{analyte.bioReference}</td>
-                                        <td className={tdClass}>{analyte.isOrgSpecific ? 'Organization' : 'Common'}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
+                            ))}
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
-            {selectedTest && (
+            <TestFormModal
+                isOpen={isTestModalOpen}
+                onClose={() => setIsTestModalOpen(false)}
+                onSave={handleSaveTest}
+                test={editingTest}
+            />
+            <AnalyteFormModal
+                isOpen={isAnalyteModalOpen}
+                onClose={() => setIsAnalyteModalOpen(false)}
+                onSave={handleSaveAnalyte}
+                analyte={editingAnalyte}
+            />
+            {assigningTest && (
                 <AssignAnalytesModal
-                    isOpen={isModalOpen}
-                    onClose={() => setIsModalOpen(false)}
-                    test={selectedTest}
+                    isOpen={isAssignModalOpen}
+                    onClose={() => setIsAssignModalOpen(false)}
+                    test={assigningTest}
                     allAnalytes={analytes}
                     onSave={handleSaveAnalytesForTest}
                 />
