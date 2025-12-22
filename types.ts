@@ -63,20 +63,14 @@ export interface Test {
     // Add other test properties as needed
 }
 
-export interface ReferenceRange {
-    id: number;
-    minAgeYears: number;
-    lowValue: number;
-    highValue: number;
-    textRange: string;
-    interpretationCode: string;
-}
-
 export interface Analyte {
-    analyteId: number;
-    analyteName: string;
-    unit: string;
-    referenceRanges: ReferenceRange[];
+    id: number;
+    name: string;
+    price: number | null;
+    code: string;
+    associatedTest: string;
+    bioReference: string;
+    isOrgSpecific: boolean;
 }
 
 export interface RequestedTest {

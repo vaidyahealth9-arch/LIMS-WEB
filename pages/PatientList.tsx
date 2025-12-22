@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Encounter, Test } from '../types';
-import { searchEncounters, getAllTests, createBill, updateEncounterStatus } from '../services/api';
+import type { Encounter, OrganizationTest } from '../types';
+import { searchEncounters, getEnabledTestsForLab, createBill, updateEncounterStatus } from '../services/api';
 
 import { Billing } from './Billing';
 
@@ -70,7 +70,7 @@ const ActionButtons: React.FC<{ encounter: Encounter; onBill: (encounter: Encoun
 
 export const PatientList: React.FC = () => {
     const [encounters, setEncounters] = useState<Encounter[]>([]);
-    const [tests, setTests] = useState<Test[]>([]);
+    const [tests, setTests] = useState<OrganizationTest[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedTests, setSelectedTests] = useState<string[]>([]);
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
@@ -112,16 +112,12 @@ export const PatientList: React.FC = () => {
     };
 
     useEffect(() => {
-        // Fetch tests for the filter dropdown
-        const fetchTests = async () => {
-            try {
-                const allTests = await getAllTests();
-                setTests(allTests);
-            } catch (error) {
-                console.error('Failed to fetch tests:', error);
-            }
-        };
-        fetchTests();
+        const orgId = localStorage.getItem('organizationId');
+        if (orgId) {
+            getEnabledTestsForLab(orgId)
+                .then(setTests)
+                .catch(error => console.error('Failed to fetch tests:', error));
+        }
     }, []);
 
     useEffect(() => {

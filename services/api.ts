@@ -126,14 +126,6 @@ export const addSpecimenType = (data: any): Promise<SpecimenType> => {
     });
 };
 
-// Creates a new test for a lab.
-export const addTest = (data: any): Promise<Test> => {
-    return fetchApi<Test>(`${API_BASE_URL}/tests`, {
-        method: 'POST',
-        body: JSON.stringify(data),
-    });
-};
-
 export const addTestAnalyte = (data: any): Promise<TestAnalyte> => {
     return fetchApi<TestAnalyte>(`${API_BASE_URL}/test-analytes`, {
         method: 'POST',
@@ -155,8 +147,29 @@ export const addTestInterpretationRule = (data: any): Promise<TestInterpretation
     });
 };
  
-export const getAllTests = (): Promise<Test[]> => {
-    return fetchApi<Test[]>(`${API_BASE_URL}/tests`);
+export const getAnalytesForOrganization = (organizationId: string): Promise<Analyte[]> => {
+    return fetchApi<Analyte[]>(`${API_BASE_URL}/organizations/${organizationId}/analytes`);
+};
+
+export const addOrUpdateAnalyteForOrganization = (organizationId: string, analyteData: any): Promise<void> => {
+    return fetchApi<void>(`${API_BASE_URL}/organizations/${organizationId}/analytes`, {
+        method: 'POST',
+        body: JSON.stringify(analyteData),
+    });
+};
+
+export const createOrUpdateOrganizationTest = (organizationId: string, testData: any): Promise<OrganizationTest> => {
+    return fetchApi<OrganizationTest>(`${API_BASE_URL}/organizations/${organizationId}/tests`, {
+        method: 'POST',
+        body: JSON.stringify(testData),
+    });
+};
+
+export const setAnalytesForOrganizationTest = (organizationId: string, testId: string, analyteIds: string[]): Promise<void> => {
+    return fetchApi<void>(`${API_BASE_URL}/organization-test-analytes/organization/${organizationId}/test/${testId}`, {
+        method: 'PUT',
+        body: JSON.stringify({ analyteIds }),
+    });
 };
 
 export const searchServiceRequests = (
