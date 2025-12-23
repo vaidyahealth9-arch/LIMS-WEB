@@ -4,6 +4,8 @@ import type { Encounter, Test } from '../types';
 import { searchEncounters, getAllTests, createBill, updateEncounterStatus } from '../services/api';
 
 import { Billing } from './Billing';
+import { downloadReport } from '../services/api';
+import { useNotifications } from '../services/NotificationContext';
 
 const StatusBadge: React.FC<{ status: Encounter['status'] }> = ({ status }) => {
     const statusClasses: Record<Encounter['status'], string> = {
@@ -23,6 +25,7 @@ const StatusBadge: React.FC<{ status: Encounter['status'] }> = ({ status }) => {
 
 const ActionButtons: React.FC<{ encounter: Encounter; onBill: (encounter: Encounter) => void; onUpdate: () => void; }> = ({ encounter, onBill, onUpdate }) => {
     const navigate = useNavigate();
+    const { addNotification } = useNotifications();
     const { status, tests } = encounter;
 
     const handleAddTests = () => {
@@ -36,6 +39,31 @@ const ActionButtons: React.FC<{ encounter: Encounter; onBill: (encounter: Encoun
         } catch (error) {
             console.error('Failed to update status', error);
             alert('Failed to start progress.');
+        }
+    };
+
+    const handlePrintReport = async () => {
+        if (!encounter.serviceRequestIds || encounter.serviceRequestIds.length === 0) {
+            addNotification({ type: 'error', title: 'Error', message: 'No service request ID found for this encounter.' });
+            return;
+        }
+        try {
+            // Assuming the first service request is the relevant one for the report
+            const serviceRequestId = encounter.serviceRequestIds[0];
+            const reportBlob = await downloadReport(serviceRequestId.toString());
+
+            // Create a link and trigger the download
+            const url = window.URL.createObjectURL(reportBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `report-${encounter.localEncounterValue || encounter.id}.html`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            a.remove();
+        } catch (error) {
+            addNotification({ type: 'error', title: 'Download Failed', message: 'Could not download the report.' });
+            console.error('Failed to download report:', error);
         }
     };
 
@@ -59,7 +87,7 @@ const ActionButtons: React.FC<{ encounter: Encounter; onBill: (encounter: Encoun
                 </>
             );
         case 'FINISHED':
-            return <button className="text-green-600 hover:text-green-900">Print Report</button>;
+            return <button onClick={handlePrintReport} className="text-green-600 hover:text-green-900">Print Report</button>;
         default:
             if (!hasTests) {
                 return <button onClick={handleAddTests} className="text-indigo-600 hover:text-indigo-900">Add tests</button>;
