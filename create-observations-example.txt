@@ -1,0 +1,76 @@
+ Of course. Here are some cURL examples for the API endpoint you asked for.
+
+  Prerequisites
+
+   1. The application is running on http://localhost:8080.
+   2. You have a valid JWT authentication token for a user with the TECHNICIAN role.
+   3. There is an existing Service Request, Specimen, and Analyte in the database with the IDs you are using in the examples.
+
+  General cURL Command Structure
+
+  The endpoint is POST /api/service-requests/{id}/observations, where {id} is the ID of the service request.
+
+    1 curl -X POST \
+    2   http://localhost:8080/api/service-requests/{service-request-id}/observations \
+    3   -H 'Content-Type: application/json' \
+    4   -H 'Authorization: Bearer <YOUR_JWT_TOKEN>' \
+    5   -d '{
+    6         "specimenId": <specimen-id>,
+    7         "analyteId": <analyte-id>,
+    8         "value...": <value>,
+    9         "effectiveDateTime": "2025-10-29T12:00:00Z"
+   10       }'
+
+  Replace:
+   * {service-request-id} with the ID of the service request.
+   * <YOUR_JWT_TOKEN> with your actual JWT token.
+   * <specimen-id> with the ID of the specimen.
+   * <analyte-id> with the ID of the analyte.
+
+  ---
+
+  Example 1: Creating an Observation with a Numeric Value
+
+  This example shows how to record a numeric result, like a blood glucose level.
+
+    1 curl -X POST \
+    2   http://localhost:8080/api/service-requests/101/observations \
+    3   -H 'Content-Type: application/json' \
+    4   -H 'Authorization: Bearer <YOUR_JWT_TOKEN>' \
+    5   -d '{
+    6         "specimenId": 201,
+    7         "analyteId": 301,
+    8         "valueNumeric": 95.5,
+    9         "effectiveDateTime": "2025-10-29T14:30:00Z"
+   10       }'
+
+  Example 2: Creating an Observation with a Coded Value
+
+  This example shows how to record a result from a predefined set of codes, like "Positive" or "Negative".
+
+    1 curl -X POST \
+    2   http://localhost:8080/api/service-requests/102/observations \
+    3   -H 'Content-Type: application/json' \
+    4   -H 'Authorization: Bearer <YOUR_JWT_TOKEN>' \
+    5   -d '{
+    6         "specimenId": 202,
+    7         "analyteId": 302,
+    8         "valueCode": "Negative",
+    9         "valueCodeSystem": "http://terminology.hl7.org/CodeSystem/v2-0078",
+   10         "effectiveDateTime": "2025-10-29T15:00:00Z"
+   11       }'
+
+  Example 3: Creating an Observation with a Text Value
+
+  This example shows how to record a free-text result, like a pathologist's note.
+
+    1 curl -X POST \
+    2   http://localhost:8080/api/service-requests/103/observations \
+    3   -H 'Content-Type: application/json' \
+    4   -H 'Authorization: Bearer <YOUR_JWT_TOKEN>' \
+    5   -d '{
+    6         "specimenId": 203,
+    7         "analyteId": 303,
+    8         "valueString": "No malignant cells identified.",
+    9         "effectiveDateTime": "2025-10-29T16:00:00Z"
+   10       }'

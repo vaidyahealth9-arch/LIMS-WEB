@@ -10,8 +10,9 @@ export default defineConfig(({ mode }) => {
         host: '0.0.0.0',
         proxy: {
           '/api': {
-            target: 'https://hale-lims-322945089195.asia-south1.run.app',  // Your backend API URL
+            target: env.VITE_API_URL,
             changeOrigin: true,
+            secure: false,
           },
         },
       },
@@ -19,7 +20,6 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.API_URL': JSON.stringify(mode === 'production' ? 'https://hale-lims-322945089195.asia-south1.run.app/api' : '/api')
       },
       resolve: {
         alias: {
