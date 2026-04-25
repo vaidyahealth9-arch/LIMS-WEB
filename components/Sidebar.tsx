@@ -2,6 +2,8 @@
 import React, { JSX } from 'react';
 import { NavLink } from 'react-router-dom';
 import { navLinks } from '../constants';
+import { useAuth } from '../services/AuthContext';
+import { canAccessPathForRoles } from '../services/roleAccess';
 
 const Icon: React.FC<{ name: string }> = ({ name }) => {
     const iconMap: { [key: string]: JSX.Element } = {
@@ -18,6 +20,10 @@ const Icon: React.FC<{ name: string }> = ({ name }) => {
 };
 
 const Sidebar: React.FC = () => {
+    const { user } = useAuth();
+    const currentRoles = Array.isArray(user?.roles) ? user.roles : [];
+    const allowedLinks = navLinks.filter((link) => canAccessPathForRoles(link.path, currentRoles));
+
     return (
         <aside className="w-80 flex-shrink-0 shadow-lg" style={{ background: 'linear-gradient(180deg, #f0fdfa 0%, #ffffff 100%)' }}>
             <div className="flex items-center h-20 px-6 gap-3" style={{ 
@@ -36,7 +42,7 @@ const Sidebar: React.FC = () => {
             </div>
             <nav className="mt-6 px-3">
                 <ul className="space-y-1">
-                    {navLinks.map((link) => (
+                    {allowedLinks.map((link) => (
                         <li key={link.name}>
                             <NavLink
                                 to={link.path}
@@ -51,11 +57,8 @@ const Sidebar: React.FC = () => {
                                 <Icon name={link.icon} />
                                 <span className="ml-3 flex-1">{link.name}</span>
                                 {(link.path === '/iris' || 
-                                  link.path === '/user-management') && (
-                                    <span className="ml-2 px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-700 rounded-full border border-amber-200">
-                                        WIP
-                                    </span>
-                                )}
+                                  link.path === '/user-management') 
+                                  }
                             </NavLink>
                         </li>
                     ))}

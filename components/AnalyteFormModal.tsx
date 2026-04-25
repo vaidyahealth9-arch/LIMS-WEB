@@ -6,6 +6,7 @@ interface AnalyteFormModalProps {
     onClose: () => void;
     onSave: (analyteData: any) => void;
     analyte: Analyte | null;
+    analyteOptions?: Analyte[];
 }
 
 const AnalyteFormModal: React.FC<AnalyteFormModalProps> = ({ isOpen, onClose, onSave, analyte }) => {

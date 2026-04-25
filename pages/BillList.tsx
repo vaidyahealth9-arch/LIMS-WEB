@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import type { Bill, Paginated } from '../types';
-import { searchBills, recordPayment } from '../services/api';
+import { searchBills, recordPayment, syncBill, getOrganizationById } from '../services/api';
 import { useNotifications } from '../services/NotificationContext';
+import { InvoiceModal } from '../components/InvoiceModal';
+import { WorkflowStepper } from '../components/WorkflowStepper';
 
 const BillStatusBadge: React.FC<{ status: Bill['status'] }> = ({ status }) => {
     const statusClasses: Record<Bill['status'], string> = {
@@ -18,10 +20,86 @@ const BillStatusBadge: React.FC<{ status: Bill['status'] }> = ({ status }) => {
     );
 };
 
+const formatCurrency = (amount: number): string => {
+    return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+    }).format(amount || 0);
+};
+
+type InvoiceLineItem = {
+    testName: string;
+    listPrice: number;
+    discount: number;
+    netPrice: number;
+};
+
+const roundTo2 = (value: number): number => Math.round((value + Number.EPSILON) * 100) / 100;
+
+const buildInvoiceLineItems = (bill: Bill): { items: InvoiceLineItem[]; pricingReliable: boolean } => {
+    const sourceItems = Array.isArray(bill.testItems) && bill.testItems.length > 0
+        ? bill.testItems
+        : (bill.tests || []).map((testName) => ({ testName, price: 0 }));
+
+    const subtotal = Number(bill.totalAmount || 0);
+    const explicitDiscount = typeof bill.discountAmount === 'number'
+        ? Number(bill.discountAmount)
+        : Math.max(0, subtotal - Number(bill.netAmount || 0));
+
+    const effectiveDiscount = roundTo2(Math.max(0, explicitDiscount));
+    const hasPricedRows = sourceItems.some((item) => Number(item?.price || 0) > 0);
+    const pricingReliable = hasPricedRows || subtotal === 0;
+
+    if (!pricingReliable) {
+        return {
+            items: sourceItems.map((item) => ({
+                testName: item.testName,
+                listPrice: 0,
+                discount: 0,
+                netPrice: 0,
+            })),
+            pricingReliable: false,
+        };
+    }
+
+    const items: InvoiceLineItem[] = sourceItems.map((item) => ({
+        testName: item.testName,
+        listPrice: roundTo2(Number(item?.price || 0)),
+        discount: 0,
+        netPrice: 0,
+    }));
+
+    if (effectiveDiscount <= 0 || subtotal <= 0) {
+        return {
+            items: items.map((item) => ({ ...item, netPrice: item.listPrice })),
+            pricingReliable: true,
+        };
+    }
+
+    let distributedDiscount = 0;
+    items.forEach((item, index) => {
+        if (index === items.length - 1) {
+            item.discount = roundTo2(Math.max(0, effectiveDiscount - distributedDiscount));
+        } else {
+            item.discount = roundTo2((item.listPrice / subtotal) * effectiveDiscount);
+            distributedDiscount += item.discount;
+        }
+        item.netPrice = roundTo2(Math.max(0, item.listPrice - item.discount));
+    });
+
+    return { items, pricingReliable: true };
+};
+
 export const BillList: React.FC = () => {
     const [bills, setBills] = useState<Bill[]>([]);
     const [searchQuery, setSearchQuery] = useState('');
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState(() => {
+        const d = new Date();
+        d.setDate(d.getDate() - 2);
+        return d.toISOString().split('T')[0];
+    });
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -31,8 +109,36 @@ export const BillList: React.FC = () => {
     const [paymentAmount, setPaymentAmount] = useState<string | number>('');
     const [paymentMethod, setPaymentMethod] = useState('CASH');
     const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+    const [organizationGstin, setOrganizationGstin] = useState('');
     const { addNotification } = useNotifications();
     const pageSize = 10;
+
+    useEffect(() => {
+        const fetchOrganizationGstin = async () => {
+            if (!selectedBill) {
+                setOrganizationGstin('');
+                return;
+            }
+
+            const orgIdFromBill = selectedBill.organizationId;
+            const orgIdFromStorage = localStorage.getItem('organizationId');
+            const orgId = orgIdFromBill ? String(orgIdFromBill) : orgIdFromStorage;
+
+            if (!orgId) {
+                setOrganizationGstin('');
+                return;
+            }
+
+            try {
+                const org = await getOrganizationById(orgId);
+                setOrganizationGstin(org.gstin || '');
+            } catch {
+                setOrganizationGstin('');
+            }
+        };
+
+        fetchOrganizationGstin();
+    }, [selectedBill]);
 
     const handlePrintInvoice = () => {
         const printWindow = window.open('', '_blank');
@@ -44,31 +150,67 @@ export const BillList: React.FC = () => {
             <!DOCTYPE html>
             <html>
             <head>
-                <title>Invoice - ${selectedBill.invoiceNumber}</title>
+                <title>Invoice - ${selectedBill.invoiceNumber || selectedBill.billId}</title>
                 <script src="https://cdn.tailwindcss.com"></script>
+                <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
                 <style>
                     @page {
                         size: A4;
-                        margin: 1cm;
+                        margin: 10mm;
                     }
                     body {
                         margin: 0;
-                        padding: 20px;
-                        font-family: system-ui, -apple-system, sans-serif;
+                        padding: 0;
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+                        color: #1e293b;
+                        background: #ffffff;
+                        line-height: 1.5;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
+
+                    .print-hide {
+                        display: none !important;
+                    }
+
+                    #invoice-modal-wrapper {
+                        position: static !important;
+                        background: transparent !important;
+                        padding: 0 !important;
+                        display: block !important;
+                    }
+
+                    #invoice-modal {
+                        width: 100% !important;
+                        border: none !important;
+                        box-shadow: none !important;
+                        overflow: visible !important;
+                        max-height: none !important;
+                        position: static !important;
+                        transform: none !important;
+                    }
+
+                    /* High fidelity overrides */
+                    .bg-slate-50 { background-color: #f8fafc !important; }
+                    .bg-slate-900 { background-color: #0f172a !important; color: white !important; }
+                    .bg-blue-600 { background-color: #2563eb !important; color: white !important; }
+                    .text-blue-600 { color: #2563eb !important; }
+                    .bg-emerald-100 { background-color: #d1fae5 !important; }
+                    .text-emerald-800 { color: #065f46 !important; }
+                    .border-slate-200 { border-color: #e2e8f0 !important; }
+                    
                     @media print {
-                        .print-hide {
-                            display: none !important;
-                        }
-                        * {
-                            -webkit-print-color-adjust: exact !important;
-                            print-color-adjust: exact !important;
-                        }
+                        .print-hide { display: none !important; }
+                        * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
                     }
                 </style>
             </head>
-            <body>
-                ${invoiceContent}
+            <body class="bg-white">
+                <div id="invoice-modal-wrapper">
+                    <div id="invoice-modal">
+                        ${invoiceContent}
+                    </div>
+                </div>
                 <script>
                     window.onload = function() {
                         setTimeout(function() {
@@ -76,7 +218,7 @@ export const BillList: React.FC = () => {
                             window.onafterprint = function() {
                                 window.close();
                             };
-                        }, 250);
+                        }, 500);
                     };
                 </script>
             </body>
@@ -190,14 +332,36 @@ export const BillList: React.FC = () => {
         }
     };
 
+    const handleSyncBill = async (encounterId: number) => {
+        setIsLoading(true);
+        try {
+            await syncBill(encounterId);
+            addNotification({
+                type: 'success',
+                title: 'Bill Updated',
+                message: 'Bill synchronized with current encounter tests successfully.',
+                persist: false,
+            });
+            fetchBills(searchQuery, startDate, endDate, currentPage);
+        } catch (error) {
+            console.error('Failed to sync bill:', error);
+            addNotification({
+                type: 'error',
+                title: 'Sync Failed',
+                message: error instanceof Error ? error.message : 'Failed to synchronize bill.',
+                persist: true,
+            });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
     return (
         <div className="bg-gradient-to-br from-white to-cyan-50 p-6 rounded-xl shadow-lg border border-cyan-100">
             {/* Header */}
             <div className="mb-6">
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent mb-2">
-                    Bills Dashboard
-                </h2>
-                <p className="text-sm text-gray-600">Manage billing and invoices</p>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-cyan-600 to-teal-600 bg-clip-text text-transparent mb-2">Bills</h2>
+                <p className="text-sm text-gray-600">View and manage billing records</p>
             </div>
             
             {/* Filters - Compact Single Row */}
@@ -207,7 +371,7 @@ export const BillList: React.FC = () => {
                     <div className="flex-1 min-w-[250px]">
                         <input 
                             type="text" 
-                            placeholder="Search by name, MRN, invoice number..." 
+                            placeholder="Search by name, MRN, invoice..." 
                             className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
@@ -231,30 +395,22 @@ export const BillList: React.FC = () => {
                         />
                     </div>
 
-                    {/* Date Presets */}
-                    <div className="flex items-center gap-1.5">
-                        <button onClick={() => handleDatePreset('7d')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">7 days</button>
-                        <button onClick={() => handleDatePreset('1m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">1 month</button>
-                        <button onClick={() => handleDatePreset('3m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">3 months</button>
-                    </div>
 
-                    {/* Total Counter */}
-                    <div className="flex items-center bg-gradient-to-r from-cyan-50 to-teal-50 px-3 py-2 rounded-lg border border-cyan-200 whitespace-nowrap">
-                        <span className="text-xs text-gray-600">Total:</span>
-                        <span className="ml-1.5 text-sm font-bold text-cyan-700">{bills.length}</span>
-                        <span className="ml-1 text-xs text-gray-600">bills</span>
+                    {/* Date Presets */}
+                    <div className="flex items-center gap-2">
+                        <button onClick={() => handleDatePreset('7d')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors">7d</button>
+                        <button onClick={() => handleDatePreset('1m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors">1m</button>
+                        <button onClick={() => handleDatePreset('3m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors">3m</button>
                     </div>
                 </div>
 
-                {/* Clear Filters */}
                 {searchQuery && (
-                    <div className="flex items-center justify-start mt-3 pt-3 border-t border-gray-200">
+                    <div className="flex items-center justify-start mt-3 pt-3 border-t border-gray-300">
                         <button
                             onClick={() => setSearchQuery('')}
-                            className="px-3 py-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md font-medium transition-colors flex items-center"
+                            className="px-3 py-1.5 text-xs text-red-600 hover:text-red-700 hover:bg-red-50 rounded-md font-medium transition-colors"
                         >
-                            <span className="mr-1">×</span>
-                            Clear filters
+                            Clear
                         </button>
                     </div>
                 )}
@@ -281,14 +437,15 @@ export const BillList: React.FC = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gradient-to-r from-cyan-50 to-teal-50">
                             <tr>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Invoice No.</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Invoice</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Date</th>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Patient Name</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Patient</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">MRN</th>
-                                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Encounter ID</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Encounter</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Tests</th>
-                                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Net Amount</th>
+                                <th scope="col" className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Amount</th>
                                 <th scope="col" className="px-4 py-3 text-right text-xs font-semibold text-gray-700 uppercase tracking-wider">Paid</th>
+                                <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Progress</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
                                 <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                             </tr>
@@ -299,27 +456,40 @@ export const BillList: React.FC = () => {
                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{bill.invoiceNumber}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{new Date(bill.invoiceDate).toLocaleDateString()}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-700 font-medium">{bill.patientName}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-cyan-600 font-medium">{bill.patientMrn}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 font-medium">{bill.patientMrn}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{bill.localEncounterId}</td>
                                     <td className="px-4 py-3 text-sm text-gray-600 max-w-xs truncate">{bill.tests.join(', ')}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900 font-semibold text-right">₹{bill.netAmount.toFixed(2)}</td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">₹{bill.paidAmount.toFixed(2)}</td>
+                                    <td className="px-4 py-3 min-w-[150px]">
+                                        <WorkflowStepper 
+                                            status={bill.status === 'PAID' ? 'IN_PROGRESS' : 'ARRIVED'} 
+                                            hasTests={true}
+                                            billStatus={bill.status}
+                                        />
+                                    </td>
                                     <td className="px-4 py-3 whitespace-nowrap">
                                         <BillStatusBadge status={bill.status} />
                                     </td>
                                     <td className="px-4 py-3 whitespace-nowrap text-sm font-medium">
                                         <button 
                                             onClick={() => setSelectedBill(bill)}
-                                            className="text-cyan-600 hover:text-cyan-900 font-medium"
+                                            className="text-blue-600 hover:text-blue-900 font-medium text-xs mr-3 px-2 py-1 rounded hover:bg-blue-50"
                                         >
                                             View
+                                        </button>
+                                        <button
+                                            onClick={() => handleSyncBill(bill.encounterId)}
+                                            className="text-cyan-600 hover:text-cyan-900 font-medium text-xs mr-3 px-2 py-1 rounded hover:bg-cyan-50"
+                                        >
+                                            Update
                                         </button>
                                         {(bill.status === 'DUE' || bill.status === 'PARTIALLY_PAID') && (
                                             <button
                                                 onClick={() => handleRecordPaymentClick(bill)}
-                                                className="ml-4 text-green-600 hover:text-green-900 font-medium"
+                                                className="ml-1 text-emerald-700 hover:text-emerald-900 font-medium text-xs px-2 py-1 rounded hover:bg-emerald-50 border border-emerald-200"
                                             >
-                                                Record Payment
+                                                Pay
                                             </button>
                                         )}
                                     </td>
@@ -330,7 +500,6 @@ export const BillList: React.FC = () => {
                 )}
             </div>
 
-            {/* Pagination */}
             {totalPages > 1 && (
                 <div className="flex justify-between items-center mt-6 px-4">
                     <button
@@ -341,7 +510,7 @@ export const BillList: React.FC = () => {
                         ← Previous
                     </button>
                     <span className="text-sm font-medium text-gray-700">
-                        Page <span className="text-cyan-600 font-bold">{currentPage}</span> of <span className="text-cyan-600 font-bold">{totalPages}</span>
+                        Page {currentPage} of {totalPages}
                     </span>
                     <button
                         onClick={handleNextPage}
@@ -353,33 +522,37 @@ export const BillList: React.FC = () => {
                 </div>
             )}
 
-            {/* Payment Modal */}
             {billForPayment && (
-                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 backdrop-blur-sm">
-                    <div className="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-                        <h3 className="text-2xl font-bold text-gray-800 mb-4">Record Payment</h3>
-                        <p className="mb-2">Invoice: <span className="font-semibold">{billForPayment.invoiceNumber}</span></p>
-                        <p className="mb-6">Amount Due: <span className="font-semibold">₹{(billForPayment.netAmount - billForPayment.paidAmount).toFixed(2)}</span></p>
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+                    <div className="bg-white p-0 rounded-xl border border-gray-200 w-full max-w-md shadow-2xl overflow-hidden">
+                        <div className="px-6 py-5 bg-gradient-to-r from-emerald-600 to-green-600">
+                            <h3 className="text-xl font-bold text-white">Record Payment</h3>
+                        </div>
+                        <div className="p-6">
+                        <div className="bg-gray-50 p-3 rounded border border-gray-300 mb-6">
+                            <p className="text-sm text-gray-600">Invoice: <span className="font-semibold text-gray-900">{billForPayment.invoiceNumber}</span></p>
+                            <p className="text-sm text-gray-600 mt-1">Amount Due: <span className="font-semibold text-gray-900">₹{(billForPayment.netAmount - billForPayment.paidAmount).toFixed(2)}</span></p>
+                        </div>
 
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                             <div>
-                                <label htmlFor="amountPaid" className="block text-sm font-medium text-gray-700">Amount to Pay</label>
+                                <label htmlFor="amountPaid" className="block text-xs font-semibold text-gray-600 mb-1">Amount to Pay</label>
                                 <input
                                     type="number"
                                     id="amountPaid"
                                     value={paymentAmount}
                                     onChange={(e) => setPaymentAmount(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                                    className="w-full px-3 py-2 border border-gray-400 rounded focus:outline-none focus:border-blue-500"
                                     placeholder="Enter amount"
                                 />
                             </div>
                             <div>
-                                <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700">Payment Method</label>
+                                <label htmlFor="paymentMethod" className="block text-xs font-semibold text-gray-600 mb-1">Payment Method</label>
                                 <select
                                     id="paymentMethod"
                                     value={paymentMethod}
                                     onChange={(e) => setPaymentMethod(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                                    className="w-full px-3 py-2 border border-gray-400 rounded focus:outline-none focus:border-blue-500"
                                 >
                                     <option>CASH</option>
                                     <option>CARD</option>
@@ -388,256 +561,44 @@ export const BillList: React.FC = () => {
                                 </select>
                             </div>
                             <div>
-                                <label htmlFor="paymentDate" className="block text-sm font-medium text-gray-700">Payment Date</label>
+                                <label htmlFor="paymentDate" className="block text-xs font-semibold text-gray-600 mb-1">Payment Date</label>
                                 <input
                                     type="date"
                                     id="paymentDate"
                                     value={paymentDate}
                                     onChange={(e) => setPaymentDate(e.target.value)}
-                                    className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-cyan-500 focus:border-cyan-500"
+                                    className="w-full px-3 py-2 border border-gray-400 rounded focus:outline-none focus:border-blue-500"
                                 />
                             </div>
                         </div>
 
-                        <div className="mt-8 flex justify-end space-x-4">
+                        <div className="mt-6 flex justify-end gap-3">
                             <button
                                 onClick={() => setBillForPayment(null)}
-                                className="px-4 py-2 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300"
+                                className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-semibold rounded hover:bg-gray-50 transition-colors"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={handlePaymentSubmit}
                                 disabled={isLoading}
-                                className="px-4 py-2 bg-green-500 text-white font-semibold rounded-lg hover:bg-green-600 disabled:opacity-50"
+                                className="px-4 py-2 border border-green-500 text-green-700 text-sm font-semibold rounded hover:bg-green-50 disabled:opacity-50 transition-colors"
                             >
                                 {isLoading ? 'Saving...' : 'Submit Payment'}
                             </button>
+                        </div>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* Bill Details Modal */}
             {selectedBill && (
-                <div id="invoice-modal-wrapper" className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 backdrop-blur-sm">
-                    <div id="invoice-modal" className="bg-white shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto border border-gray-200">
-                        {/* Modal Header - Corporate Style */}
-                        <div className="bg-gradient-to-r from-slate-800 to-slate-700 px-8 py-6 border-b-4 border-cyan-500">
-                            <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-2">
-                                        <svg className="w-8 h-8 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                        </svg>
-                                        <h2 className="text-2xl font-bold text-white tracking-tight">INVOICE</h2>
-                                    </div>
-                                    <div className="pl-11">
-                                        <p className="text-cyan-300 text-sm font-semibold">Invoice Number</p>
-                                        <p className="text-white text-lg font-mono font-bold">{selectedBill.invoiceNumber}</p>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => setSelectedBill(null)}
-                                    className="print-hide text-gray-300 hover:text-white hover:bg-white/10 rounded p-2 transition-colors"
-                                >
-                                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Modal Body */}
-                        <div className="p-8 bg-gray-50">
-                            {/* Company Info & Invoice Date - Corporate Header */}
-                            <div className="bg-white border border-gray-200 shadow-sm p-6 mb-6">
-                                <div className="flex justify-between items-start">
-                                    <div>
-                                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Issued By</h3>
-                                        <p className="text-lg font-bold text-slate-800">Vaidya Labs</p>
-                                        <p className="text-sm text-gray-600 mt-1">Laboratory Information Management System</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Invoice Date</h3>
-                                        <p className="text-lg font-bold text-slate-800">{new Date(selectedBill.invoiceDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                        <div className="mt-3">
-                                            <BillStatusBadge status={selectedBill.status} />
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Patient & Encounter Info - Corporate Grid */}
-                            <div className="grid grid-cols-2 gap-6 mb-6">
-                                <div className="bg-white border border-gray-200 shadow-sm p-6">
-                                    <div className="flex items-center mb-4 pb-3 border-b border-gray-200">
-                                        <div className="bg-slate-100 rounded p-2 mr-3">
-                                            <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                            </svg>
-                                        </div>
-                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Patient Details</h3>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <div>
-                                            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Full Name</p>
-                                            <p className="text-base font-semibold text-slate-800">{selectedBill.patientName}</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Medical Record Number</p>
-                                            <p className="text-base font-mono font-bold text-cyan-700">{selectedBill.patientMrn}</p>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="bg-white border border-gray-200 shadow-sm p-6">
-                                    <div className="flex items-center mb-4 pb-3 border-b border-gray-200">
-                                        <div className="bg-slate-100 rounded p-2 mr-3">
-                                            <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                        </div>
-                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Encounter Details</h3>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <div>
-                                            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Encounter ID</p>
-                                            <p className="text-base font-mono font-bold text-slate-800">{selectedBill.localEncounterId}</p>
-                                        </div>
-                                        {selectedBill.dueDate && (
-                                            <div>
-                                                <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Payment Due Date</p>
-                                                <p className="text-base font-semibold text-red-700">{new Date(selectedBill.dueDate).toLocaleDateString('en-IN', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Tests/Services Table - Corporate Style */}
-                            <div className="bg-white border border-gray-200 shadow-sm mb-6">
-                                <div className="bg-slate-50 border-b border-gray-200 px-6 py-4">
-                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Services & Laboratory Tests</h3>
-                                </div>
-                                <div className="overflow-hidden">
-                                    <table className="min-w-full">
-                                        <thead className="bg-slate-100 border-b border-gray-300">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider w-20">Item #</th>
-                                                <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Test Description</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {selectedBill.tests.map((test, index) => (
-                                                <tr key={index} className="hover:bg-gray-50">
-                                                    <td className="px-6 py-4 text-sm font-semibold text-gray-600">{String(index + 1).padStart(2, '0')}</td>
-                                                    <td className="px-6 py-4 text-sm font-medium text-slate-800">{test}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                            {/* Payment Summary - Professional Invoice Style */}
-                            <div className="bg-white border border-gray-200 shadow-sm">
-                                <div className="bg-slate-50 border-b border-gray-200 px-6 py-4">
-                                    <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Financial Summary</h3>
-                                </div>
-                                <div className="p-6">
-                                    <div className="space-y-4 mb-6">
-                                        <div className="flex justify-between items-center py-2">
-                                            <span className="text-sm font-medium text-gray-600 uppercase tracking-wide">Subtotal Amount</span>
-                                            <span className="text-base font-semibold text-slate-800">₹ {(selectedBill.totalAmount || selectedBill.netAmount).toFixed(2)}</span>
-                                        </div>
-                                        {selectedBill.discountPercentage > 0 && (
-                                            <div className="flex justify-between items-center py-2 border-t border-gray-200">
-                                                <span className="text-sm font-medium text-gray-600 uppercase tracking-wide">
-                                                    Discount Applied
-                                                    <span className="ml-2 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded font-bold">
-                                                        {selectedBill.discountPercentage}%
-                                                    </span>
-                                                </span>
-                                                <span className="text-base font-semibold text-red-600">- ₹ {((selectedBill.totalAmount || selectedBill.netAmount) - selectedBill.netAmount).toFixed(2)}</span>
-                                            </div>
-                                        )}
-                                        <div className="flex justify-between items-center py-3 border-y-2 border-slate-300 bg-slate-50 px-4 -mx-6">
-                                            <span className="text-base font-bold text-slate-800 uppercase tracking-wide">Net Payable Amount</span>
-                                            <span className="text-xl font-bold text-slate-900">₹ {selectedBill.netAmount.toFixed(2)}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center py-2 mt-4">
-                                            <span className="text-sm font-medium text-gray-600 uppercase tracking-wide">Amount Paid</span>
-                                            <span className="text-base font-bold text-green-700">₹ {selectedBill.paidAmount.toFixed(2)}</span>
-                                        </div>
-                                        {selectedBill.status !== 'PAID' && (
-                                            <div className="flex justify-between items-center py-3 border-t-2 border-red-300 bg-red-50 px-4 -mx-6 mt-3">
-                                                <span className="text-base font-bold text-red-800 uppercase tracking-wide">Outstanding Balance</span>
-                                                <span className="text-xl font-bold text-red-700">₹ {(selectedBill.netAmount - selectedBill.paidAmount).toFixed(2)}</span>
-                                            </div>
-                                        )}
-                                        {selectedBill.status === 'PAID' && (
-                                            <div className="flex items-center justify-center py-3 bg-green-50 border border-green-200 rounded mt-3">
-                                                <svg className="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                <span className="text-sm font-bold text-green-800 uppercase tracking-wide">Fully Paid</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Notes - Corporate Style */}
-                            {selectedBill.notes && (
-                                <div className="bg-white border border-gray-200 shadow-sm mt-6">
-                                    <div className="bg-slate-50 border-b border-gray-200 px-6 py-3 flex items-center">
-                                        <svg className="w-4 h-4 text-slate-700 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
-                                        </svg>
-                                        <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Additional Notes</h3>
-                                    </div>
-                                    <div className="p-6">
-                                        <p className="text-sm text-gray-700 leading-relaxed italic">{selectedBill.notes}</p>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Footer Disclaimer */}
-                            <div className="mt-6 pt-6 border-t-2 border-gray-300">
-                                <p className="text-xs text-gray-500 text-center leading-relaxed">
-                                    This is a computer-generated invoice and does not require a physical signature. 
-                                    For any queries, please contact the billing department. All amounts are in Indian Rupees (INR).
-                                </p>
-                            </div>
-                        </div>
-
-                        {/* Modal Footer - Corporate Actions */}
-                        <div className="print-hide bg-slate-100 px-8 py-5 border-t-2 border-slate-300 flex justify-between items-center">
-                            <div className="text-xs text-gray-600">
-                                <p className="font-semibold">Document ID: {selectedBill.invoiceNumber}</p>
-                                <p className="mt-1">Generated on: {new Date(selectedBill.invoiceDate).toLocaleString('en-IN')}</p>
-                            </div>
-                            <div className="flex gap-3">
-                                <button
-                                    onClick={() => setSelectedBill(null)}
-                                    className="px-6 py-2.5 bg-white border-2 border-gray-300 text-slate-700 font-semibold hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 shadow-sm"
-                                >
-                                    Close
-                                </button>
-                                <button
-                                    onClick={handlePrintInvoice}
-                                    className="px-6 py-2.5 bg-slate-800 border-2 border-slate-800 text-white font-semibold hover:bg-slate-900 transition-all duration-200 shadow-md hover:shadow-lg flex items-center gap-2"
-                                >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                    </svg>
-                                    Print Invoice
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <InvoiceModal
+                    isOpen={!!selectedBill}
+                    onClose={() => setSelectedBill(null)}
+                    bill={selectedBill}
+                    formatCurrency={formatCurrency}
+                />
             )}
         </div>
     );

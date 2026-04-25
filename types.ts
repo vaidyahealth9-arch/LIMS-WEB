@@ -1,22 +1,50 @@
 export enum UserRole {
     Admin = 'Admin',
+    Manager = 'Manager',
     Receptionist = 'Receptionist',
     Technician = 'Technician',
     Doctor = 'Doctor',
     Radiologist = 'Radiologist',
-    Manager = 'Manager',
 }
 
 export interface User {
-    id: string;
-    practitionerFirstName: string;
-    practitionerLastName: string;
-    practitionerGender: 'male' | 'female' | 'other';
-    practitionerDateOfBirth: string;
+    id: number;
     username: string;
     roles: string[];
-    organizationId: string;
     isActive: boolean;
+    organizationId: number | null;
+    organizationName: string | null;
+    practitionerFirstName: string;
+    practitionerLastName: string | null;
+    practitionerGender: 'male' | 'female' | 'other' | 'unknown' | null;
+    practitionerSignatureImage?: string | null;
+    practitionerDateOfBirth: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+}
+
+export interface UserCreateRequest {
+    practitionerFirstName: string;
+    practitionerLastName?: string;
+    practitionerGender?: 'male' | 'female' | 'other' | 'unknown';
+    practitionerSignatureImage?: string;
+    practitionerDateOfBirth?: string;
+    username: string;
+    password: string;
+    roles: string[];
+    organizationId: number;
+    isActive?: boolean;
+}
+
+export interface UserUpdateRequest {
+    practitionerFirstName?: string;
+    practitionerLastName?: string;
+    practitionerGender?: 'male' | 'female' | 'other' | 'unknown';
+    practitionerSignatureImage?: string;
+    practitionerDateOfBirth?: string;
+    newPassword?: string;
+    roles?: string[];
+    isActive?: boolean;
 }
 
 export interface Patient {
@@ -51,7 +79,10 @@ export interface PatientRegistrationResponse {
     addressLine1: string;
     city: string;
     state: string;
+    // Aadhaar normalization
     postalCode: string;
+    relationship?: string;
+    isDependent?: boolean;
 }
 
 export interface Test {
@@ -63,8 +94,15 @@ export interface Test {
     // Add other test properties as needed
 }
 
+export interface MasterTest {
+    id: number;
+    testName: string;
+    localCode?: string;
+}
+
 export interface Analyte {
     id: number;
+    testId?: number;
     name: string;
     price: number | null;
     code: string;
@@ -81,6 +119,7 @@ export interface RequestedTest {
   price: number;
   analytes: Analyte[];
   barcode: string;
+    specimenBarcodes?: string[];
 }
 
 export interface ServiceRequest {
@@ -93,6 +132,7 @@ export interface ServiceRequest {
   requesterName: string;
   encounterId: number;
   encounterLocalValue: string;
+    encounterStatus?: 'PLANNED' | 'ARRIVED' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED' | string;
   orderDate: string;
   status: string;
   priority: string;
@@ -108,13 +148,15 @@ export interface OrganizationTest {
     organizationName: string;
     testId: number;
     testLocalCode: string;
+    testCode?: string;
     testName: string;
     isEnabled: boolean;
-    price: number;
+    price: number | null;
+    analyteIds?: number[];
     createdAt: string;
     updatedAt: string;
-    specimenTypeId: number;
-    defaultNumberOfSpecimens: number;
+    specimenTypeId?: number;
+    defaultNumberOfSpecimens?: number;
 }
 
 export interface BilledTest {
@@ -129,6 +171,9 @@ export interface ServiceRequestAnalyte {
     analyteId: number;
     analyteName: string;
     unit: string;
+    resultType?: string;
+    biologicalRefInterval?: string | null;
+    referenceRange?: string | null;
     interpretationRule: InterpretationRule | null;
 }
 
@@ -150,22 +195,13 @@ export interface ResultEntry {
     observedValue: string;
     machineValue?: string;
     units: string;
+    resultType?: string;
     normalRange: string;
     comments: string;
-    specimenId: string;
+    specimenId?: number | null;
     analyteId: number;
+    existingObservationId?: string | null;
     interpretationRule: InterpretationRule | null;
-}
-
-export interface IrisWorklistItem {
-    id: string;
-    patientId: string;
-    patientName: string;
-    modality: string;
-    part: string;
-    dateTime: string;
-    priority: 'Urgent' | 'Routine';
-    status: 'New' | 'Completed' | 'Ongoing' | 'Stopped/Interrupted';
 }
 
 export interface Unit {
@@ -245,7 +281,14 @@ export interface Organization {
     state: string;
     postalCode: string;
     country: string;
+    gstin?: string | null;
     localIdentifierValue: string;
+    reportHeaderImage?: string | null;
+    reportFooterImage?: string | null;
+    reportHeaderMarginMm?: number | null;
+    reportFooterMarginMm?: number | null;
+    reportHeaderHeightMm?: number | null;
+    reportFooterHeightMm?: number | null;
 }
 
 export interface Encounter {
@@ -259,10 +302,11 @@ export interface Encounter {
     date: string;
     collectionDate: string;
     sampleType: string;
-    status: 'PLANNED' | 'ARRIVED' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED';
+    status: 'PLANNED' | 'ARRIVED' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED' | 'PENDING_VERIFICATION' | 'APPROVED' | 'COMPLETED';
     tests: string[];
     localEncounterValue?: string;
     serviceRequestIds?: number[];
+    approvingPractitionerId?: number;
 }
 
 export interface ServiceRequest {
@@ -270,46 +314,95 @@ export interface ServiceRequest {
     patientId: number;
     requesterId: number;
     encounterId: number;
+    encounterStatus?: 'PLANNED' | 'ARRIVED' | 'IN_PROGRESS' | 'FINISHED' | 'CANCELLED' | string;
     status: string;
     priority: string;
     testIds: string[];
 }
 
 export interface Specimen {
-    id: string;
-    serviceRequestId: string;
-    patientId: string;
-    specimenTypeId: string;
-    collectionDate: string;
-    receivedDate: string;
+    id: number | string;
+    localSpecimenValue?: string;
+    serviceRequestId: number | string;
+    serviceRequestLocalValue?: string;
+    patientId: number | string;
+    patientMrn?: string;
+    specimenTypeId?: number | string;
+    specimenTypeName?: string;
+    collectionDate?: string;
+    receivedDate?: string;
     status: string;
-    containerId: string;
+    containerId?: string;
+    barcode?: string;
+    barcodeRegeneratedCount?: number;
+    lastBarcodeRegeneratedAt?: string;
+    lastBarcodeRegeneratedBy?: string;
+    lastBarcodeRegenerationReason?: string;
+    organizationId?: number;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface Observation {
     id: string;
     serviceRequestId: string;
     specimenId: string;
+    testName?: string;
     analyteId: string;
+    analyteName?: string;
     valueNumeric?: number;
     valueString?: string;
+    comments?: string;
+    unit?: string;
+    referenceRange?: string;
+    interpretation?: string;
+    status?: string;
+    performerName?: string;
+    performerSignatureImage?: string;
+    issuedDateTime?: string;
     effectiveDateTime: string;
+}
+
+export interface ReportApprovalStatus {
+    ready: boolean;
+    message: string;
+    approvedDoctorName?: string | null;
+    approvedDoctorSignatureImage?: string | null;
+    approvedAt?: string | null;
+    ulrNumber?: string | null;
+    accreditationScopeQrContent?: string | null;
+    reportIntegrityQrContent?: string | null;
+    reportStorageReference?: string | null;
+    reportLocalValue?: string | null;
+    reportPdfPath?: string | null;
+}
+
+export interface BillTestItem {
+    testName: string;
+    price: number;
 }
 
 export interface Bill {
     billId: number;
+    encounterId?: number;
+    organizationId?: number;
     invoiceNumber: string;
     invoiceDate: string;
     patientName: string;
     patientMrn: string;
     localEncounterId: string;
+    organizationName?: string;
     totalAmount: number;
+    discountAmount?: number;
     netAmount: number;
     paidAmount: number;
+    dueAmount?: number;
     discountPercentage: number;
     status: 'PAID' | 'PARTIALLY_PAID' | 'DUE' | 'CANCELLED';
+    paymentDate?: string;
     serviceRequestIds: number[];
     tests: string[];
+    testItems?: BillTestItem[];
     notes?: string;
     dueDate?: string;
 }
@@ -336,4 +429,35 @@ export interface Paginated<T> {
     totalElements: number;
     size: number;
     number: number;
+}
+
+export interface TestCatalogImportItemResult {
+    testId?: number;
+    localCode?: string;
+    testName?: string;
+    action: string;
+    status: string;
+    message: string;
+}
+
+export interface TestCatalogImportResponse {
+    total: number;
+    created: number;
+    updated: number;
+    failed: number;
+    dryRun: boolean;
+    results: TestCatalogImportItemResult[];
+}
+
+export interface DashboardWeeklyRevenueItem {
+    date: string;
+    revenue: number;
+}
+
+export interface DashboardData {
+    newPatientsToday: number;
+    revenueToday: number;
+    pendingServiceRequests: number;
+    weeklyRevenue: DashboardWeeklyRevenueItem[];
+    averageTat: number;
 }

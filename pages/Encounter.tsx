@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { createEncounter } from '../services/api';
 import { useNotifications } from '../services/NotificationContext';
@@ -11,9 +11,24 @@ const Encounter: React.FC = () => {
     const [startTime, setStartTime] = useState(new Date().toISOString().slice(0, 16));
     const [status, setStatus] = useState('ARRIVED');
     const [encounterClass, setEncounterClass] = useState('AMB');
-    const [serviceProviderId, setServiceProviderId] = useState('2'); // Hardcoded for now
     const [referenceDoctor, setReferenceDoctor] = useState('');
-    const [createdEncounter, setCreatedEncounter] = useState<null | { id: number }>(null);
+    const [createdEncounter, setCreatedEncounter] = useState<null | { id: number; localEncounterValue?: string }>(null);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const submitLockRef = useRef(false);
+
+    const resolvedServiceProviderId = useMemo(() => {
+        const fromPatient = Number((patient as any)?.organizationId);
+        if (Number.isInteger(fromPatient) && fromPatient > 0) {
+            return fromPatient;
+        }
+
+        const fromStorage = Number(localStorage.getItem('organizationId'));
+        if (Number.isInteger(fromStorage) && fromStorage > 0) {
+            return fromStorage;
+        }
+
+        return 1;
+    }, [patient]);
 
     if (!patient) {
         return (
@@ -43,6 +58,10 @@ const Encounter: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
+        if (submitLockRef.current || isSubmitting) {
+            return;
+        }
+
         // Additional validation for referring doctor
         if (!referenceDoctor.trim()) {
             addNotification({
@@ -59,7 +78,7 @@ const Encounter: React.FC = () => {
             startTime: new Date(startTime).toISOString(),
             status,
             encounterClass,
-            serviceProviderId: parseInt(serviceProviderId, 10),
+            serviceProviderId: resolvedServiceProviderId,
             referenceDoctor: referenceDoctor.trim(),
             patientName: `${patient.firstName} ${patient.lastName}`,
             mrnId: patient.localMrnValue,
@@ -67,6 +86,8 @@ const Encounter: React.FC = () => {
         };
 
         try {
+            submitLockRef.current = true;
+            setIsSubmitting(true);
             const result = await createEncounter(encounterData);
             setCreatedEncounter(result);
             addNotification({
@@ -75,9 +96,9 @@ const Encounter: React.FC = () => {
                 message: `Encounter ID: ${result.localEncounterValue || result.id} • MRN: ${patient.localMrnValue} • Dr. ${referenceDoctor} • ${status}`,
                 duration: 5000 // Increased duration to ensure user sees the ID
             });
-            // Longer delay to ensure user can see the encounter ID
+            // Continue workflow: Encounter -> Add Tests
             setTimeout(() => {
-                navigate('/patient-list');
+                navigate('/create-tests', { state: { encounter: result } });
             }, 3000);
         } catch (error) {
             console.error('Failed to create encounter:', error);
@@ -87,6 +108,9 @@ const Encounter: React.FC = () => {
                 message: error instanceof Error ? error.message : 'An error occurred',
                 duration: 2000
             });
+        } finally {
+            setIsSubmitting(false);
+            submitLockRef.current = false;
         }
     };
 
@@ -123,7 +147,7 @@ const Encounter: React.FC = () => {
                                 <p className="text-lg font-semibold">
                                     Encounter ID: <span className="text-emerald-900">{createdEncounter.localEncounterValue || createdEncounter.id}</span>
                                 </p>
-                                {createdEncounter.localEncounterValue && createdEncounter.id !== createdEncounter.localEncounterValue && (
+                                {createdEncounter.localEncounterValue && String(createdEncounter.id) !== String(createdEncounter.localEncounterValue) && (
                                     <p className="text-sm text-emerald-600">
                                         System ID: {createdEncounter.id}
                                     </p>
@@ -241,7 +265,7 @@ const Encounter: React.FC = () => {
                             <option value="PLANNED">Planned</option>
                             <option value="ARRIVED">Arrived</option>
                             <option value="IN_PROGRESS">In Progress</option>
-                            <option value="FINISHED">Finished</option>
+                            
                             <option value="CANCELLED">Cancelled</option>
                         </select>
                     </div>
@@ -270,18 +294,20 @@ const Encounter: React.FC = () => {
                     <button
                         type="button"
                         onClick={() => navigate(-1)}
+                        disabled={isSubmitting}
                         className="px-6 py-2.5 border-2 border-gray-300 rounded-lg text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-all duration-200"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
-                        className="px-8 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-cyan-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200 flex items-center gap-2"
+                        disabled={isSubmitting || createdEncounter !== null}
+                        className="px-8 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-cyan-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200 flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                         </svg>
-                        Create Encounter
+                        {isSubmitting ? 'Creating Encounter...' : 'Create Encounter'}
                     </button>
                 </div>
             </form>

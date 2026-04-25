@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import type { OrganizationTest } from '../types';
+import type { MasterTest, OrganizationTest } from '../types';
 
 interface TestFormModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSave: (testData: any) => void;
     test: OrganizationTest | null;
+    availableTests?: MasterTest[];
 }
 
 const TestFormModal: React.FC<TestFormModalProps> = ({ isOpen, onClose, onSave, test }) => {
@@ -19,7 +20,7 @@ const TestFormModal: React.FC<TestFormModalProps> = ({ isOpen, onClose, onSave, 
         if (isOpen && test) {
             setFormState({
                 testId: test.testId.toString(),
-                price: test.price.toString(),
+                price: test.price != null ? test.price.toString() : '',
                 isEnabled: test.isEnabled,
             });
         } else {

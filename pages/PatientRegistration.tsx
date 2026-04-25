@@ -1,11 +1,11 @@
-import React, { useState, useEffect, useCallback, KeyboardEvent } from 'react';
+import React, { useState, useEffect, KeyboardEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { registerPatient, searchPatients } from '../services/api';
+import { registerPatient, searchPatients, fetchPhrUser } from '../services/api';
 import type { PatientRegistrationResponse } from '../types';
-import debounce from 'lodash/debounce';
 import { useNotifications } from '../services/NotificationContext';
+import { WorkflowStepper } from '../components/WorkflowStepper';
 
-type SearchFilter = 'all' | 'name' | 'phone' | 'uhid' | 'aadhaar' | 'abha';
+type SearchFilter = 'all' | 'name' | 'phone' | 'uhid' | 'aadhaar';
 
 interface SearchHistory {
     query: string;
@@ -13,10 +13,49 @@ interface SearchHistory {
     timestamp: number;
 }
 
+const INDIA_STATES_AND_UTS: string[] = [
+    'Andhra Pradesh',
+    'Arunachal Pradesh',
+    'Assam',
+    'Bihar',
+    'Chhattisgarh',
+    'Goa',
+    'Gujarat',
+    'Haryana',
+    'Himachal Pradesh',
+    'Jharkhand',
+    'Karnataka',
+    'Kerala',
+    'Madhya Pradesh',
+    'Maharashtra',
+    'Manipur',
+    'Meghalaya',
+    'Mizoram',
+    'Nagaland',
+    'Odisha',
+    'Punjab',
+    'Rajasthan',
+    'Sikkim',
+    'Tamil Nadu',
+    'Telangana',
+    'Tripura',
+    'Uttar Pradesh',
+    'Uttarakhand',
+    'West Bengal',
+    'Andaman and Nicobar Islands',
+    'Chandigarh',
+    'Dadra and Nagar Haveli and Daman and Diu',
+    'Delhi',
+    'Jammu and Kashmir',
+    'Ladakh',
+    'Lakshadweep',
+    'Puducherry'
+];
+
 const PatientRegistration: React.FC = () => {
     const navigate = useNavigate();
     const { addNotification } = useNotifications();
-    const [abhaStatus, setAbhaStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+
     
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -29,6 +68,8 @@ const PatientRegistration: React.FC = () => {
     const [state, setState] = useState('');
     const [postalCode, setPostalCode] = useState('');
     const [aadhaar, setAadhaar] = useState('');
+    const [isDependent, setIsDependent] = useState(false);
+    const [relationship, setRelationship] = useState('self');
 
     const [searchQuery, setSearchQuery] = useState('');
     const [searchFilter, setSearchFilter] = useState<SearchFilter>('all');
@@ -38,6 +79,8 @@ const PatientRegistration: React.FC = () => {
     const [searchHistory, setSearchHistory] = useState<SearchHistory[]>([]);
     const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
     const [searchError, setSearchError] = useState<string | null>(null);
+    const [phrMobile, setPhrMobile] = useState('');
+    const [isPhrFetching, setIsPhrFetching] = useState(false);
     
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
@@ -58,12 +101,55 @@ const PatientRegistration: React.FC = () => {
         }
     }, [searchHistory]);
 
-    const handleCheckAbha = () => {
-        setAbhaStatus('loading');
-        setTimeout(() => {
-            const success = Math.random() > 0.3;
-            setAbhaStatus(success ? 'success' : 'error');
-        }, 1500);
+
+
+    const handleFetchFromPhr = async () => {
+        const normalizedMobile = phrMobile.replace(/\D/g, '');
+        if (normalizedMobile.length !== 10) {
+            addNotification({
+                type: 'error',
+                title: 'Invalid Mobile Number',
+                message: 'Enter a valid 10-digit mobile number to fetch PHR data.',
+                persist: false,
+            });
+            return;
+        }
+
+        try {
+            setIsPhrFetching(true);
+            const lookupRelationship = isDependent ? relationship : 'self';
+            const phrData: any = await fetchPhrUser(normalizedMobile, lookupRelationship);
+
+            setFirstName(phrData?.firstName || phrData?.givenName || '');
+            setLastName(phrData?.lastName || phrData?.familyName || '');
+            const normalizedGender = String(phrData?.gender || '').toLowerCase();
+            if (normalizedGender === 'male' || normalizedGender === 'female' || normalizedGender === 'other') {
+                setGender(normalizedGender);
+            }
+            setDateOfBirth(phrData?.dateOfBirth ? String(phrData.dateOfBirth).split('T')[0] : '');
+            setPhone(phrData?.contactPhone || normalizedMobile);
+            setEmail(phrData?.contactEmail || '');
+            setAddress(phrData?.addressLine1 || '');
+            setCity(phrData?.city || '');
+            setState(phrData?.state || '');
+            setPostalCode(phrData?.postalCode || '');
+
+            addNotification({
+                type: 'success',
+                title: 'PHR Data Loaded',
+                message: 'Patient details fetched successfully. Please review and proceed.',
+                persist: false,
+            });
+        } catch (error) {
+            addNotification({
+                type: 'error',
+                title: 'PHR Fetch Failed',
+                message: error instanceof Error ? error.message : 'Could not fetch patient details from PHR.',
+                persist: true,
+            });
+        } finally {
+            setIsPhrFetching(false);
+        }
     };
 
     const clearForm = () => {
@@ -78,6 +164,8 @@ const PatientRegistration: React.FC = () => {
         setState('');
         setPostalCode('');
         setAadhaar('');
+        setIsDependent(false);
+        setRelationship('self');
         setSelectedPatient(null);
         setSearchQuery('');
         setSearchResults([]);
@@ -98,6 +186,8 @@ const PatientRegistration: React.FC = () => {
         setState(patient.state || '');
         setPostalCode(patient.postalCode || '');
         setAadhaar('');
+        setIsDependent(patient.isDependent || false);
+        setRelationship(patient.relationship || 'self');
         setSearchResults([]);
         setTotalPages(0);
         setSearchQuery(`${patient.firstName} ${patient.lastName} (${patient.localMrnValue})`);
@@ -153,13 +243,24 @@ const PatientRegistration: React.FC = () => {
         }
     };
 
-    // Debounced search function
-    const debouncedSearch = useCallback(
-        debounce((query: string, filter: SearchFilter) => {
-            performSearch(query, filter, 1);
-        }, 300),
-        []
-    );
+    useEffect(() => {
+        if (searchQuery.length === 0) {
+            setSearchResults([]);
+            setTotalPages(0);
+            setIsSearching(false);
+            return;
+        }
+
+        if (searchQuery.length < 2) {
+            return;
+        }
+
+        const timeoutId = window.setTimeout(() => {
+            void performSearch(searchQuery, searchFilter, 1);
+        }, 300);
+
+        return () => window.clearTimeout(timeoutId);
+    }, [searchFilter, searchQuery]);
 
     // Handle keyboard navigation
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -199,8 +300,6 @@ const PatientRegistration: React.FC = () => {
             setSearchResults([]);
             setTotalPages(0);
             setIsSearching(false);
-        } else if (value.length >= 2) {
-            debouncedSearch(value, searchFilter);
         }
     };
 
@@ -277,6 +376,27 @@ const PatientRegistration: React.FC = () => {
             return;
         }
 
+        if (!/^\d{6}$/.test(postalCode)) {
+            addNotification({
+                type: 'error',
+                title: 'Invalid Postal Code',
+                message: 'Postal code must be exactly 6 digits',
+                persist: false,
+            });
+            return;
+        }
+
+        // Validate Aadhaar if provided (12 digits)
+        if (aadhaar.trim() && (aadhaar.length !== 12 || !/^\d{12}$/.test(aadhaar))) {
+            addNotification({
+                type: 'error',
+                title: 'Invalid Aadhaar Number',
+                message: 'Aadhaar number must be exactly 12 digits',
+                persist: false
+            });
+            return;
+        }
+
         const orgId = localStorage.getItem('organizationId');
         if (!orgId) {
             addNotification({
@@ -289,6 +409,7 @@ const PatientRegistration: React.FC = () => {
         }
 
         const patientData = {
+            id: selectedPatient?.id,
             firstName,
             lastName,
             gender,
@@ -301,6 +422,8 @@ const PatientRegistration: React.FC = () => {
             postalCode,
             organizationId: orgId,
             aadhaarNumber: aadhaar,
+            isDependent,
+            relationship,
         };
 
         try {
@@ -347,9 +470,27 @@ const PatientRegistration: React.FC = () => {
                         Clear Form
                     </button>
                 </div>
+                <div className="mt-4 bg-white/10 rounded-lg p-2 backdrop-blur-sm border border-white/20">
+                    <WorkflowStepper 
+                        status="registration" 
+                        hasTests={false}
+                    />
+                </div>
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-lg border border-gray-100">
+                <div className="mb-5 rounded-xl border border-cyan-200 bg-gradient-to-r from-cyan-50 to-teal-50 p-4">
+                    <p className="text-sm font-semibold text-cyan-900 flex items-center gap-2">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Patient Registration
+                    </p>
+                    <p className="text-xs text-cyan-800 mt-1">Search for an existing patient or fill in the details below to register a new one.</p>
+                </div>
+
+                {/* Removed separate Quick PHR Fetch Section */}
+
                 {/* Search Section */}
                 <div className="mb-6 relative">
                     <label htmlFor="search-patient" className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
@@ -446,17 +587,7 @@ const PatientRegistration: React.FC = () => {
                             >
                                 Aadhaar
                             </button>
-                            <button
-                                type="button"
-                                onClick={() => handleFilterChange('abha')}
-                                className={`px-4 py-1.5 text-sm font-medium rounded-lg transition-all duration-200 ${
-                                    searchFilter === 'abha'
-                                        ? 'bg-gradient-to-r from-cyan-500 to-teal-600 text-white shadow-md'
-                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                }`}
-                            >
-                                ABHA
-                            </button>
+
                         </div>
                     </div>
                 {searchError && (
@@ -530,7 +661,14 @@ const PatientRegistration: React.FC = () => {
                                     onClick={() => handlePatientSelect(patient)}
                                     onMouseEnter={() => setSelectedResultIndex(index)}
                                 >
-                                    <p className="font-semibold text-gray-800">{patient.firstName} {patient.lastName}</p>
+                                    <p className="font-semibold text-gray-800">
+                                        {patient.firstName} {patient.lastName}
+                                        {patient.isDependent && patient.relationship && (
+                                            <span className="ml-2 text-[10px] bg-cyan-100 text-cyan-700 px-2 py-0.5 rounded-full uppercase">
+                                                {patient.relationship}
+                                            </span>
+                                        )}
+                                    </p>
                                     <p className="text-sm text-gray-600 mt-1">
                                         <span className="inline-block mr-4">📋 MRN: {patient.localMrnValue}</span>
                                         {patient.contactPhone && (
@@ -688,30 +826,86 @@ const PatientRegistration: React.FC = () => {
                         />
                     </div>
 
-                    {/* Phone Number */}
+                    {/* Dependent Profile Toggle */}
+                    <div className="md:col-span-2 p-4 bg-cyan-50/50 rounded-xl border border-cyan-100 mb-2">
+                        <div className="flex items-center gap-4">
+                            <label className="flex items-center cursor-pointer group">
+                                <div className="relative">
+                                    <input 
+                                        type="checkbox" 
+                                        className="sr-only" 
+                                        checked={isDependent}
+                                        onChange={e => setIsDependent(e.target.checked)}
+                                    />
+                                    <div className={`block w-12 h-7 rounded-full transition-colors ${isDependent ? 'bg-cyan-600' : 'bg-gray-300'}`}></div>
+                                    <div className={`absolute left-1 top-1 bg-white w-5 h-5 rounded-full transition-transform ${isDependent ? 'translate-x-5' : ''}`}></div>
+                                </div>
+                                <span className="ml-3 text-sm font-bold text-gray-700">Register as Dependent Profile</span>
+                            </label>
+                            
+                            {isDependent && (
+                                <div className="flex-1 animate-fadeIn">
+                                    <select 
+                                        id="relationship" 
+                                        value={relationship}
+                                        onChange={e => setRelationship(e.target.value)}
+                                        className="block w-full py-2 px-3 border-2 border-cyan-200 bg-white rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 text-sm transition-all"
+                                    >
+                                        <option value="child">Child</option>
+                                        <option value="father">Father</option>
+                                        <option value="mother">Mother</option>
+                                        <option value="spouse">Spouse</option>
+                                        <option value="other">Other Relative</option>
+                                    </select>
+                                </div>
+                            )}
+                        </div>
+                        <p className="text-[10px] text-cyan-700 mt-2 ml-1">
+                            {isDependent 
+                                ? "This profile will be linked to the primary mobile number for PHR synchronization." 
+                                : "The mobile number will be treated as the primary identifier for this profile."}
+                        </p>
+                    </div>
+
+                    {/* Phone Number with Inline PHR Fetch */}
                     <div>
                         <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
                             Phone Number <span className="text-red-500">*</span>
                         </label>
-                        <input 
-                            type="tel" 
-                            id="phone" 
-                            required 
-                            value={phone} 
-                            onChange={e => {
-                                const value = e.target.value.replace(/\D/g, '');
-                                if (value.length <= 10) {
-                                    setPhone(value);
-                                }
-                            }}
-                            placeholder="10-digit mobile number"
-                            maxLength={10}
-                            pattern="[0-9]{10}"
-                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all hover:border-gray-300" 
-                        />
+                        <div className="flex gap-2">
+                            <input 
+                                type="tel" 
+                                id="phone" 
+                                required 
+                                value={phone} 
+                                onChange={e => {
+                                    const value = e.target.value.replace(/\D/g, '');
+                                    if (value.length <= 10) {
+                                        setPhone(value);
+                                        setPhrMobile(value); // Keep sync for fetch logic if needed
+                                    }
+                                }}
+                                placeholder="10-digit mobile number"
+                                maxLength={10}
+                                pattern="[0-9]{10}"
+                                className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all hover:border-gray-300" 
+                            />
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setPhrMobile(phone);
+                                    handleFetchFromPhr();
+                                }}
+                                disabled={isPhrFetching || phone.length !== 10}
+                                className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-md hover:from-cyan-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                                {isPhrFetching ? 'Fetching...' : 'Fetch from PHR'}
+                            </button>
+                        </div>
                         {phone && phone.length < 10 && (
                             <p className="text-xs text-red-500 mt-1">Phone number must be exactly 10 digits</p>
                         )}
+                        <p className="text-xs text-gray-500 mt-1">Use a valid 10-digit mobile number to auto-fill details from PHR.</p>
                     </div>
 
                     {/* Email */}
@@ -765,14 +959,17 @@ const PatientRegistration: React.FC = () => {
                         <label htmlFor="state" className="block text-sm font-semibold text-gray-700 mb-2">
                             State <span className="text-red-500">*</span>
                         </label>
-                        <input 
-                            type="text" 
+                        <select 
                             id="state" 
                             value={state} 
                             onChange={e => setState(e.target.value)} 
-                            placeholder="Enter state"
-                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all hover:border-gray-300" 
-                        />
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all hover:border-gray-300 bg-white"
+                        >
+                            <option value="">Select state</option>
+                            {INDIA_STATES_AND_UTS.map((stateName) => (
+                                <option key={stateName} value={stateName}>{stateName}</option>
+                            ))}
+                        </select>
                     </div>
 
                     {/* Postal Code */}
@@ -784,52 +981,16 @@ const PatientRegistration: React.FC = () => {
                             type="text" 
                             id="postalCode" 
                             value={postalCode} 
-                            onChange={e => setPostalCode(e.target.value)} 
+                            onChange={e => setPostalCode(e.target.value.replace(/\D/g, '').slice(0, 6))} 
                             placeholder="Enter postal code"
+                            inputMode="numeric"
+                            maxLength={6}
+                            pattern="[0-9]{6}"
                             className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all hover:border-gray-300" 
                         />
                     </div>
 
-                    {/* ABHA Section - WIP */}
-                    <div className="md:col-span-2">
-                        <div className="border-t-2 border-gray-100 pt-6 mt-2 opacity-60 pointer-events-none">
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className="w-1 h-6 bg-gradient-to-b from-gray-400 to-gray-500 rounded-full"></div>
-                                <h3 className="text-lg font-bold text-gray-600">ABHA Integration</h3>
-                                <span className="ml-2 text-xs font-semibold text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
-                                    WIP
-                                </span>
-                            </div>
-                            <div className="flex items-end gap-4">
-                                <div className="flex-grow">
-                                    <label htmlFor="aadhaar" className="block text-sm font-semibold text-gray-500 mb-2">
-                                        Aadhaar Number <span className="text-red-400">*</span>
-                                    </label>
-                                    <input 
-                                        type="text" 
-                                        id="aadhaar" 
-                                        value={aadhaar} 
-                                        onChange={e => setAadhaar(e.target.value)} 
-                                        placeholder="XXXX XXXX XXXX"
-                                        maxLength={12}
-                                        disabled
-                                        className="w-full px-4 py-2.5 border-2 border-gray-200 bg-gray-100 rounded-lg shadow-sm cursor-not-allowed" 
-                                    />
-                                </div>
-                                <button 
-                                    type="button" 
-                                    onClick={handleCheckAbha} 
-                                    disabled
-                                    className="px-6 py-2.5 bg-gray-300 text-gray-500 font-semibold rounded-lg shadow-sm cursor-not-allowed whitespace-nowrap"
-                                >
-                                    Check ABHA
-                                </button>
-                            </div>
-                            <div className="mt-3 text-xs text-gray-500 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
-                                ℹ️ This feature is currently under development and will be available soon.
-                            </div>
-                        </div>
-                    </div>
+
 
                 </div>
                 

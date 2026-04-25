@@ -1,19 +1,50 @@
 steps:
-# Build the container image
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/halelab-469206/hale-lims-web', '.']
+  # Build image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-f'
+      - '${_DOCKERFILE}'
+      - '-t'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE_NAME}:$COMMIT_SHA'
+      - '.'
 
-# Push the container image to Container Registry
-- name: 'gcr.io/cloud-builders/docker'
-  args: ['push', 'gcr.io/halelab-469206/hale-lims-web']
+  # Push image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE_NAME}:$COMMIT_SHA'
 
-# Deploy container image to Cloud Run
-- name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
-  entrypoint: gcloud
-  args: ['run', 'deploy', 'hale-lims-web', '--image', 'gcr.io/halelab-469206/hale-lims-web', '--region', 'asia-south1', '--platform', 'managed', '--allow-unauthenticated', '--port=80']
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image'
+      - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE_NAME}:$COMMIT_SHA'
+      - '--region'
+      - '${_REGION}'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated=${_ALLOW_UNAUTHENTICATED}'
+      - '--service-account'
+      - '${_RUNTIME_SA}'
+      - '--port=80'
+      - '--set-env-vars=LIMS_API_UPSTREAM=${_LIMS_API_UPSTREAM}'
 
 images:
-- 'gcr.io/halelab-469206/hale-lims-web'
+  - '${_REGION}-docker.pkg.dev/$PROJECT_ID/${_AR_REPO}/${_SERVICE_NAME}:$COMMIT_SHA'
 
 options:
   logging: CLOUD_LOGGING_ONLY
+
+substitutions:
+  _REGION: 'asia-south1'
+  _AR_REPO: 'hale-lims'
+  _SERVICE_NAME: 'hale-lims-web'
+  _DOCKERFILE: 'Dockerfile'
+  _ALLOW_UNAUTHENTICATED: 'true'
+  _RUNTIME_SA: 'lims-web-sa@PROJECT_ID.iam.gserviceaccount.com'
+  _LIMS_API_UPSTREAM: 'https://hale-lims-CHANGE_ME.a.run.app'

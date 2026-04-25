@@ -4,9 +4,18 @@ import { login as apiLogin } from './api';
 interface AuthContextType {
   isAuthenticated: boolean;
   user: { username: string, roles: string[], organizationId: string, organizationName: string } | null;
-  login: (username, password) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
+
+type LoginResponse = {
+  token: string;
+  userId: number;
+  username: string;
+  roles?: string[];
+  organizationId: number | string;
+  organizationName: string;
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -18,21 +27,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!localStorage.getItem('token'));
 
-  const login = async (username, password) => {
-      const response = await apiLogin(username, password);
-      const { token, userId, organizationId, organizationName } = response;
+    const login = async (username: string, password: string) => {
+      const response = await apiLogin(username, password) as LoginResponse;
+      const { token, userId, organizationId, organizationName, roles } = response;
       const userDetails = {
           username: response.username,
-          roles: [], // Assuming roles are not in the response for now
-          organizationId,
+        roles: Array.isArray(roles) ? roles : [],
+        organizationId: String(organizationId),
           organizationName
       };
       setToken(token);
       setUser(userDetails);
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(userDetails));
-      localStorage.setItem('organizationId', organizationId);
-      localStorage.setItem('userId', userId);
+      localStorage.setItem('organizationId', String(organizationId));
+      localStorage.setItem('userId', String(userId));
       setIsAuthenticated(true);
   };
 

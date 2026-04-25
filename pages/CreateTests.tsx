@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getEnabledTestsForLab, createServiceRequest, getEncounterById } from '../services/api';
+import { getEnabledTestsForLab, createServiceRequest, getEncounterById, getServiceRequestById, updateServiceRequest, syncBill } from '../services/api';
 import type { OrganizationTest, Encounter } from '../types';
 import { useNotifications } from '../services/NotificationContext';
-import Barcode from 'react-barcode';
+import { WorkflowStepper } from '../components/WorkflowStepper';
 
 const CreateTests: React.FC = () => {
     const navigate = useNavigate();
@@ -14,13 +14,17 @@ const CreateTests: React.FC = () => {
     const [availableTests, setAvailableTests] = useState<OrganizationTest[]>([]);
     const [selectedTests, setSelectedTests] = useState<Record<string, { numberOfSpecimens: number; specimenTypeId: number; testName: string; }>>({});
     const [isLoading, setIsLoading] = useState(false);
+    const [isSyncingBill, setIsSyncingBill] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
     const [createdServiceRequest, setCreatedServiceRequest] = useState<any>(null);
+    const [showSuccess, setShowSuccess] = useState(false);
     const [generatedBarcodes, setGeneratedBarcodes] = useState<Array<{ testName: string; barcode: string }>>([]);
     const barcodeRef = useRef<HTMLDivElement>(null);
     const [isLoadingTests, setIsLoadingTests] = useState(true);
     const [encounter, setEncounter] = useState<Encounter | null>(encounterFromState);
     const [isLoadingEncounter, setIsLoadingEncounter] = useState(false);
+    const [hasPrefilledExistingTests, setHasPrefilledExistingTests] = useState(false);
+    const [existingTestIds, setExistingTestIds] = useState<Set<number>>(new Set());
 
     const handlePrint = () => {
         const node = barcodeRef.current;
@@ -51,6 +55,30 @@ const CreateTests: React.FC = () => {
                     printWindow.close();
                 }, 1000); // Wait for styles to load
             }
+        }
+    };
+
+    const handleSyncBill = async () => {
+        if (!encounter?.id) return;
+        try {
+            setIsSyncingBill(true);
+            await syncBill(encounter.id);
+            addNotification({
+                type: 'success',
+                title: 'Bill Updated',
+                message: 'Billing has been synchronized with the new tests successfully.',
+                persist: true
+            });
+        } catch (error) {
+            console.error('Failed to sync bill:', error);
+            addNotification({
+                type: 'error',
+                title: 'Sync Failed',
+                message: 'Could not update the bill automatically. Please do it from the Patient List.',
+                persist: true
+            });
+        } finally {
+            setIsSyncingBill(false);
         }
     };
 
@@ -104,17 +132,90 @@ const CreateTests: React.FC = () => {
         fetchTests();
     }, []);
 
+    useEffect(() => {
+        const prefillExistingTests = async () => {
+            if (!encounter || availableTests.length === 0 || hasPrefilledExistingTests) {
+                return;
+            }
+
+            try {
+                let existingTestIdsLocal = new Set<number>();
+
+                if (Array.isArray(encounter.serviceRequestIds) && encounter.serviceRequestIds.length > 0) {
+                    const serviceRequests = await Promise.all(
+                        encounter.serviceRequestIds.map((serviceRequestId) =>
+                            getServiceRequestById(String(serviceRequestId)).catch(() => null)
+                        )
+                    );
+
+                    serviceRequests
+                        .filter((sr): sr is NonNullable<typeof sr> => Boolean(sr))
+                        .forEach((serviceRequest) => {
+                            (serviceRequest.requestedTests || []).forEach((test) => {
+                                if (typeof test?.testId === 'number') {
+                                    existingTestIdsLocal.add(test.testId);
+                                }
+                            });
+                        });
+                }
+
+                // Fallback: match by test name from encounter details
+                if (existingTestIdsLocal.size === 0 && Array.isArray(encounter.tests)) {
+                    const existingNames = new Set(encounter.tests.map((name) => String(name).trim().toLowerCase()));
+                    availableTests.forEach((test) => {
+                        if (existingNames.has(test.testName.trim().toLowerCase())) {
+                            existingTestIdsLocal.add(test.testId);
+                        }
+                    });
+                }
+
+                if (existingTestIdsLocal.size > 0) {
+                    setExistingTestIds(new Set(existingTestIdsLocal));
+                    const preselected = availableTests.reduce((acc, test) => {
+                        if (existingTestIdsLocal.has(test.testId)) {
+                            acc[String(test.testId)] = {
+                                testName: test.testName,
+                                specimenTypeId: test.specimenTypeId,
+                                numberOfSpecimens: test.defaultNumberOfSpecimens || 1,
+                            };
+                        }
+                        return acc;
+                    }, {} as Record<string, { numberOfSpecimens: number; specimenTypeId: number; testName: string; }>);
+
+                    setSelectedTests(preselected);
+                }
+            } catch (error) {
+                console.error('Failed to prefill existing tests:', error);
+            } finally {
+                setHasPrefilledExistingTests(true);
+            }
+        };
+
+        prefillExistingTests();
+    }, [encounter, availableTests, hasPrefilledExistingTests]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        if (['APPROVED', 'COMPLETED'].includes(String(encounter?.status || '').toUpperCase())) {
+            addNotification({
+                type: 'info',
+                title: 'Action Not Allowed',
+                message: 'Cannot modify tests after encounter approval/finalization.',
+                persist: false
+            });
+            return;
+        }
 
         const selectedTestIds = Object.keys(selectedTests);
         console.log('Submit clicked, selected tests:', selectedTests);
 
-        if (selectedTestIds.length === 0) {
+        const newTestIds = selectedTestIds.filter(id => !existingTestIds.has(parseInt(id, 10)));
+        if (newTestIds.length === 0) {
             addNotification({
-                type: 'error',
-                title: 'No Tests Selected',
-                message: 'Please select at least one test',
+                type: 'info',
+                title: 'No New Tests',
+                message: 'No new tests were selected to add.',
                 persist: false
             });
             return;
@@ -153,29 +254,49 @@ const CreateTests: React.FC = () => {
             encounterId: encounter.id,
             status: 'active',
             priority: 'routine',
-            tests: Object.entries(selectedTests).map(([testId, testInfo]) => ({
+            tests: newTestIds.map((testId) => ({
                 testId: parseInt(testId, 10),
-                specimenTypeId: testInfo?.specimenTypeId,
-                numberOfSpecimens: testInfo?.numberOfSpecimens,
+                specimenTypeId: selectedTests[testId]?.specimenTypeId,
+                numberOfSpecimens: selectedTests[testId]?.numberOfSpecimens,
             })),
         };
 
         console.log("Service request data:", serviceRequestData);
 
+        const activeServiceRequestId = Array.isArray(encounter.serviceRequestIds) && encounter.serviceRequestIds.length > 0
+            ? encounter.serviceRequestIds[0] 
+            : null;
+
         try {
-            console.log('Calling createServiceRequest API...');
-            const result = await createServiceRequest(serviceRequestData);
+            let result;
+            if (activeServiceRequestId) {
+                console.log(`Updating existing service request ${activeServiceRequestId}...`);
+                const updateData = {
+                    status: 'active', // Mandatory for ServiceRequestUpdateRequest
+                    tests: newTestIds.map((testId) => ({
+                        testId: parseInt(testId, 10),
+                        specimenTypeId: selectedTests[testId]?.specimenTypeId,
+                        numberOfSpecimens: selectedTests[testId]?.numberOfSpecimens,
+                    })),
+                };
+                result = await updateServiceRequest(String(activeServiceRequestId), updateData);
+            } else {
+                console.log('Calling createServiceRequest API...');
+                result = await createServiceRequest(serviceRequestData);
+            }
+            
             console.log('API response:', result);
             setCreatedServiceRequest(result);
             
             // Generate barcodes for each test
-            const barcodes = result?.requestedTests.flatMap(test => {
-                return test.specimenBarcodes.map(specimenBarcode => ({
+            const barcodes = (result?.requestedTests || []).flatMap(test => {
+                return (test.specimenBarcodes || []).map(specimenBarcode => ({
                     testName: test?.testName || 'Unknown Test',
                     barcode: specimenBarcode
                 }));
             });
             setGeneratedBarcodes(barcodes);
+            setShowSuccess(true);
             
             addNotification({
                 type: 'success',
@@ -281,6 +402,9 @@ const CreateTests: React.FC = () => {
         test.testName.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
+    const normalizedEncounterStatus = String(encounter?.status || '').toUpperCase();
+    const isEncounterLockedForTestChanges = normalizedEncounterStatus === 'COMPLETED';
+
     return (
         <div className="container mx-auto px-4 py-6">
             {/* Header */}
@@ -296,72 +420,121 @@ const CreateTests: React.FC = () => {
                         <p className="text-cyan-100 text-sm">Select tests for {encounter.patientName}</p>
                     </div>
                 </div>
+                <div className="mt-4 bg-white/10 rounded-lg p-2 backdrop-blur-sm border border-white/20">
+                    <WorkflowStepper 
+                        status={encounter.status} 
+                        hasTests={Object.keys(selectedTests).length > 0 || existingTestIds.size > 0}
+                    />
+                </div>
             </div>
 
             <div className="bg-white p-8 rounded-xl shadow-lg max-w-6xl mx-auto">
+                {isEncounterLockedForTestChanges && (
+                    <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        This encounter is already approved/finalized. Test modifications are disabled.
+                    </div>
+                )}
                 {/* Barcode Display Section */}
-                {generatedBarcodes.length > 0 && (
-                    <div className="mb-8 p-6 border-2 border-emerald-300 rounded-xl bg-gradient-to-r from-emerald-50 to-teal-50 shadow-sm">
-                        <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center gap-4">
-                                <div className="flex-shrink-0 w-12 h-12 bg-emerald-500 rounded-full flex items-center justify-center">
-                                    <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                    </svg>
+                {showSuccess && (
+                    <div className="mb-10 overflow-hidden rounded-2xl border border-emerald-100 bg-white shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <div className="relative p-8 overflow-hidden">
+                            {/* Decorative background element */}
+                            <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-emerald-50 rounded-full blur-3xl opacity-60"></div>
+                            
+                            <div className="relative flex flex-col md:flex-row items-center justify-between gap-6">
+                                <div className="flex items-center gap-5">
+                                    <div className="flex-shrink-0 w-16 h-16 bg-emerald-500 rounded-2xl rotate-3 flex items-center justify-center shadow-lg shadow-emerald-200">
+                                        <svg className="w-8 h-8 text-white -rotate-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <h3 className="text-2xl font-black text-slate-900 tracking-tight">Tests Added Successfully</h3>
+                                        <p className="text-emerald-600 font-semibold text-sm flex items-center gap-1.5 mt-1">
+                                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                                            Barcodes ready for specimen collection
+                                        </p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-emerald-800">Tests Added Successfully!</h3>
-                                    <p className="text-sm text-emerald-600 mt-1">Barcodes generated for specimen collection</p>
-                                </div>
-                            </div>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handlePrint}
-                                    className="px-4 py-2 bg-white border-2 border-emerald-500 text-emerald-700 font-semibold rounded-lg hover:bg-emerald-50 transition-colors flex items-center gap-2"
-                                >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                    </svg>
-                                    Print Barcodes
-                                </button>
-                                <button
-                                    onClick={() => navigate('/patient-list')}
-                                    className="px-4 py-2 bg-emerald-600 text-white font-semibold rounded-lg hover:bg-emerald-700 transition-colors"
-                                >
-                                    Continue
-                                </button>
                                 
+                                <div className="flex flex-wrap justify-center gap-3">
+                                    <button
+                                        onClick={handlePrint}
+                                        className="group px-5 py-2.5 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:border-emerald-500 hover:text-emerald-700 transition-all duration-300 flex items-center gap-2.5 shadow-sm"
+                                    >
+                                        <svg className="w-5 h-5 text-slate-400 group-hover:text-emerald-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                                        </svg>
+                                        Print Barcodes
+                                    </button>
+                                    
+                                    <button
+                                        onClick={handleSyncBill}
+                                        disabled={isSyncingBill}
+                                        className="group px-5 py-2.5 bg-cyan-600 text-white font-bold rounded-xl hover:bg-cyan-700 hover:shadow-lg hover:shadow-cyan-200 disabled:opacity-50 transition-all duration-300 flex items-center gap-2.5"
+                                    >
+                                        {isSyncingBill ? (
+                                            <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                            </svg>
+                                        ) : (
+                                            <svg className="w-5 h-5 group-hover:rotate-180 transition-transform duration-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                        )}
+                                        Update Bill
+                                    </button>
+
+                                    <button
+                                        onClick={() => navigate('/patient-list', { state: { openBillingForEncounterId: encounter.id } })}
+                                        className="px-6 py-2.5 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 hover:shadow-lg hover:shadow-emerald-200 transition-all duration-300 flex items-center gap-2.5"
+                                    >
+                                        Proceed to Billing
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                        </svg>
+                                    </button>
+                                </div>
                             </div>
                         </div>
                         
                         {/* Barcodes Grid */}
-                        <div ref={barcodeRef} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
-                            {generatedBarcodes.map((item, index) => (
-                                <div key={index} className="bg-white p-4 rounded-lg border-2 border-gray-200 shadow-sm print-barcode">
-                                    <div className="text-center mb-2">
-                                        <p className="text-xs font-semibold text-gray-600 mb-1">Patient: {encounter.patientName}</p>
-                                        <p className="text-xs text-gray-500">MRN: {encounter.mrnId}</p>
-                                        <p className="font-bold text-sm text-gray-800 mt-2">{item.testName}</p>
+                        <div className="bg-slate-50/50 p-8 border-t border-slate-100">
+                            <div ref={barcodeRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                {generatedBarcodes.map((item, index) => (
+                                    <div key={index} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 print-barcode relative group overflow-hidden">
+                                        <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
+                                        <div className="text-center mb-4">
+                                            <p className="text-[10px] font-black uppercase tracking-[0.15em] text-slate-400 mb-1.5">Specimen Label</p>
+                                            <p className="text-sm font-bold text-slate-800 leading-tight mb-0.5">{item.testName}</p>
+                                            <p className="text-[11px] text-slate-500 font-medium">Patient: {encounter.patientName}</p>
+                                        </div>
+                                        <div className="flex justify-center bg-white p-3 rounded-xl border border-slate-50 group-hover:border-cyan-100 transition-colors">
+                                            <img src={`data:image/png;base64,${item.barcode}`} alt={`Barcode for ${item.testName}`} className="max-w-full h-auto" />
+                                        </div>
+                                        <div className="mt-3 text-center">
+                                            <p className="text-[10px] font-mono font-bold text-slate-400">MRN: {encounter.mrnId}</p>
+                                        </div>
                                     </div>
-                                    <div className="flex justify-center bg-white p-2 rounded">
-                                    <img src={`data:image/png;base64,${item.barcode}`} alt={`Barcode for ${item.testName}`} className="max-w-full h-auto" />
-                                    </div>
-                                    <p className="text-xs text-center text-gray-500 mt-2">
-                                        {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
-                                    </p>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </div>
                 )}
 
                 {/* Encounter Details Card */}
-                {generatedBarcodes.length === 0 && (
+                {!showSuccess && (
                 <div className="mb-8 p-6 border-2 border-gray-200 rounded-xl bg-gradient-to-br from-gray-50 to-white">
                     <div className="flex items-center gap-2 mb-4">
                         <div className="w-1 h-6 bg-gradient-to-b from-cyan-500 to-teal-500 rounded-full"></div>
                         <h3 className="text-lg font-bold text-gray-800">Encounter Details</h3>
                     </div>
+                    {Object.keys(selectedTests).length > 0 && (
+                        <div className="mb-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-xs font-semibold">
+                            Existing tests for this encounter are pre-selected.
+                        </div>
+                    )}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-gray-200">
                             <div className="w-10 h-10 bg-cyan-100 rounded-full flex items-center justify-center">
@@ -400,7 +573,7 @@ const CreateTests: React.FC = () => {
                 </div>
                 )}
 
-                {generatedBarcodes.length === 0 && (
+                {!showSuccess && (
                 <form onSubmit={handleSubmit}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                         {/* Available Tests Section */}
@@ -429,6 +602,7 @@ const CreateTests: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => {
+                                        if (isEncounterLockedForTestChanges) return;
                                         const allTests = availableTests.reduce((acc, test) => {
                                             acc[test.testId] = {
                                                 testName: test.testName,
@@ -439,6 +613,7 @@ const CreateTests: React.FC = () => {
                                         }, {} as Record<string, { numberOfSpecimens: number; specimenTypeId: number; testName: string; }>);
                                         setSelectedTests(allTests);
                                     }}
+                                    disabled={isEncounterLockedForTestChanges}
                                     className="text-xs px-3 py-1.5 bg-cyan-100 text-cyan-700 font-semibold rounded-lg hover:bg-cyan-200 transition-colors"
                                 >
                                     Select All
@@ -446,6 +621,7 @@ const CreateTests: React.FC = () => {
                                 <button
                                     type="button"
                                     onClick={() => setSelectedTests({})}
+                                    disabled={isEncounterLockedForTestChanges}
                                     className="text-xs px-3 py-1.5 bg-gray-100 text-gray-700 font-semibold rounded-lg hover:bg-gray-200 transition-colors"
                                 >
                                     Clear All
@@ -460,27 +636,35 @@ const CreateTests: React.FC = () => {
                                     <div className="text-center py-12 text-gray-500">...</div> // No tests found
                                 ) : (
                                     <div className="divide-y divide-gray-100">
-                                        {filteredTests.map(test => (
+                                        {filteredTests.map(test => {
+                                            const isExisting = existingTestIds.has(test.testId);
+                                            const isSelected = Object.keys(selectedTests).includes(String(test.testId));
+                                            return (
                                             <label
                                                 key={test.testId}
-                                                className={`flex items-center gap-4 p-4 cursor-pointer hover:bg-cyan-50 transition-colors ${
-                                                    Object.keys(selectedTests).includes(String(test.testId)) ? 'bg-cyan-50/50' : ''
+                                                className={`flex items-center gap-4 p-4 ${isExisting ? 'bg-gray-100 cursor-not-allowed' : 'cursor-pointer hover:bg-cyan-50 transition-colors'} ${
+                                                    isSelected && !isExisting ? 'bg-cyan-50/50' : ''
                                                 }`}
                                             >
                                                 <input
                                                     type="checkbox"
-                                                    checked={Object.keys(selectedTests).includes(String(test.testId))}
-                                                    onChange={() => toggleTest(String(test.testId))}
-                                                    className="w-5 h-5 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500 focus:ring-2"
+                                                    checked={isSelected || isExisting}
+                                                    disabled={isExisting || isEncounterLockedForTestChanges}
+                                                    onChange={() => !isExisting && !isEncounterLockedForTestChanges && toggleTest(String(test.testId))}
+                                                    className="w-5 h-5 text-cyan-600 border-gray-300 rounded focus:ring-cyan-500 focus:ring-2 disabled:opacity-50"
                                                 />
                                                 <div className="flex-1">
-                                                    <p className="font-semibold text-gray-800">{test.testName}</p>
+                                                    <div className="flex items-center gap-2">
+                                                        <p className={`font-semibold ${isExisting ? 'text-gray-500' : 'text-gray-800'}`}>{test.testName}</p>
+                                                        {isExisting && <span className="text-[10px] px-2 py-0.5 bg-gray-200 text-gray-600 rounded">Existing Order</span>}
+                                                    </div>
                                                     {test.testCode && (
                                                         <p className="text-xs text-gray-500 mt-0.5">Code: {test.testCode}</p>
                                                     )}
                                                 </div>
                                             </label>
-                                        ))}
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -502,10 +686,17 @@ const CreateTests: React.FC = () => {
                                         <p>No tests selected yet.</p>
                                     </div>
                                 ) : (
-                                    Object.entries(selectedTests).map(([testId, testInfo]) => (
-                                        <div key={testId} className="flex items-center gap-4 p-3 bg-white rounded-lg shadow-sm border border-gray-200">
+                                    Object.entries(selectedTests).map(([testId, testInfo]) => {
+                                        const isExisting = existingTestIds.has(parseInt(testId, 10));
+                                        return (
+                                        <div key={testId} className={`flex items-center gap-4 p-3 rounded-lg shadow-sm border border-gray-200 ${isExisting ? 'bg-gray-50' : 'bg-white'}`}>
                                             <div className="flex-1">
-                                                <p className="font-semibold text-gray-800">{testInfo.testName}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <p className={`font-semibold ${isExisting ? 'text-gray-500' : 'text-gray-800'}`}>
+                                                        {testInfo.testName}
+                                                    </p>
+                                                    {isExisting && <span className="text-[10px] px-2 py-0.5 bg-gray-200 text-gray-600 rounded">Existing Order</span>}
+                                                </div>
                                             </div>
                                             <div className="flex items-center gap-2">
                                                 <label htmlFor={`specimen-count-${testId}`} className="text-sm font-medium text-gray-600">Specimens:</label>
@@ -514,17 +705,21 @@ const CreateTests: React.FC = () => {
                                                     id={`specimen-count-${testId}`}
                                                     min="1"
                                                     value={testInfo.numberOfSpecimens}
+                                                    disabled={isExisting || isEncounterLockedForTestChanges}
                                                     onChange={(e) => handleSpecimenCountChange(testId, parseInt(e.target.value, 10))}
-                                                    className="w-20 px-2 py-1 border-2 border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500"
+                                                    className="w-20 px-2 py-1 border-2 border-gray-200 rounded-md shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 disabled:opacity-50"
                                                 />
                                             </div>
-                                            <button type="button" onClick={() => toggleTest(testId)} className="text-red-500 hover:text-red-700">
-                                                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                                                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                                                </svg>
-                                            </button>
+                                            {!isExisting && !isEncounterLockedForTestChanges && (
+                                                <button type="button" onClick={() => toggleTest(testId)} className="text-red-500 hover:text-red-700">
+                                                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                                    </svg>
+                                                </button>
+                                            )}
                                         </div>
-                                    ))
+                                        );
+                                    })
                                 )}
                             </div>
                         </div>
@@ -547,7 +742,7 @@ const CreateTests: React.FC = () => {
                                 </button>
                                 <button
                                     type="submit"
-                                    disabled={isLoading || Object.keys(selectedTests).length === 0}
+                                    disabled={isEncounterLockedForTestChanges || isLoading || Object.keys(selectedTests).length === 0}
                                     className="px-8 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg hover:from-cyan-600 hover:to-teal-700 focus:outline-none focus:ring-2 focus:ring-cyan-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
                                     {isLoading ? (

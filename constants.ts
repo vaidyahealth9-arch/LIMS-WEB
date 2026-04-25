@@ -7,6 +7,6 @@ export const navLinks = [
     { name: 'Billing', path: '/billing', icon: 'billing' },
     { name: 'Lab Management', path: '/lab-management', icon: 'flask' },
     { name: 'Patient Data', path: '/patient-data', icon: 'users' },
-    // { name: 'IRIS', path: '/iris', icon: 'radiation' },
+
     { name: 'User Management', path: '/user-management', icon: 'user-cog' },
 ];
