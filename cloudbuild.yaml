@@ -31,7 +31,7 @@ steps:
       - '--allow-unauthenticated'
       - '--service-account'
       - '${_RUNTIME_SA}'
-      - '--port=80'
+      - '--port=8080'
       - '--set-env-vars=LIMS_API_UPSTREAM=${_LIMS_API_UPSTREAM}'
 
 images:
@@ -42,8 +42,8 @@ options:
 
 substitutions:
   _REGION: 'asia-south1'
-  _AR_REPO: 'hale-lims'
-  _SERVICE_NAME: 'hale-lims-web'
+  _AR_REPO: 'vaidya-apps'
+  _SERVICE_NAME: 'lims-web'
   _DOCKERFILE: 'Dockerfile'
-  _RUNTIME_SA: 'lims-web-sa@PROJECT_ID.iam.gserviceaccount.com'
-  _LIMS_API_UPSTREAM: 'https://hale-lims-CHANGE_ME.a.run.app'
+  _RUNTIME_SA: '331736313956-compute@developer.gserviceaccount.com'
+  _LIMS_API_UPSTREAM: 'https://lims-backend-gn255bmgma-el.a.run.app'
