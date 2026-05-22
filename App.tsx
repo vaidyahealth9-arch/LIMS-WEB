@@ -2,10 +2,12 @@ import React, { Suspense, lazy } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import { AuthProvider, useAuth } from './services/AuthContext';
-import { NotificationProvider } from './services/NotificationContext';
 import PrivateRoute from './components/PrivateRoute';
+import SubscriptionGuard from './components/SubscriptionGuard';
 import NotificationPanel from './components/NotificationPanel';
+import { AuthProvider, useAuth } from './services/AuthContext';
+import { SubscriptionProvider } from './services/SubscriptionContext';
+import { NotificationProvider } from './services/NotificationContext';
 import { canAccessPathForRoles, getDefaultPathForRoles } from './services/roleAccess';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -15,6 +17,7 @@ const BillList = lazy(() => import('./pages/BillList').then((m) => ({ default: m
 const TestEntry = lazy(() => import('./pages/TestEntry'));
 const LabManagement = lazy(() => import('./pages/LabManagement'));
 const UserManagement = lazy(() => import('./pages/UserManagement'));
+const Subscription = lazy(() => import('./pages/Subscription'));
 
 const Encounter = lazy(() => import('./pages/Encounter'));
 const CreateTests = lazy(() => import('./pages/CreateTests'));
@@ -53,6 +56,7 @@ const MainLayout = () => {
                             <Route path="/register-patient" element={<GuardedRoute path="/register-patient" element={<PatientRegistration />} />} />
                             <Route path="/patient-list" element={<GuardedRoute path="/patient-list" element={<PatientList />} />} />
                             <Route path="/billing" element={<GuardedRoute path="/billing" element={<BillList />} />} />
+                            <Route path="/subscription" element={<GuardedRoute path="/subscription" element={<Subscription />} />} />
                             <Route path="/entry-verify" element={<GuardedRoute path="/entry-verify" element={<TestEntry />} />} />
                             <Route path="/lab-management" element={<GuardedRoute path="/lab-management" element={<LabManagement />} />} />
                             <Route path="/user-management" element={<GuardedRoute path="/user-management" element={<UserManagement />} />} />
@@ -73,19 +77,23 @@ const MainLayout = () => {
 const App: React.FC = () => {
     return (
         <AuthProvider>
-            <NotificationProvider>
-                <HashRouter>
-                    <NotificationPanel />
-                    <Suspense fallback={<RouteFallback />}>
-                        <Routes>
-                            <Route path="/login" element={<LoginPage />} />
-                            <Route element={<PrivateRoute />}>
-                                <Route path="/*" element={<MainLayout />} />
-                            </Route>
-                        </Routes>
-                    </Suspense>
-                </HashRouter>
-            </NotificationProvider>
+            <SubscriptionProvider>
+                <NotificationProvider>
+                    <HashRouter>
+                        <NotificationPanel />
+                        <Suspense fallback={<RouteFallback />}>
+                            <Routes>
+                                <Route path="/login" element={<LoginPage />} />
+                                <Route element={<PrivateRoute />}>
+                                    <Route element={<SubscriptionGuard />}>
+                                        <Route path="/*" element={<MainLayout />} />
+                                    </Route>
+                                </Route>
+                            </Routes>
+                        </Suspense>
+                    </HashRouter>
+                </NotificationProvider>
+            </SubscriptionProvider>
         </AuthProvider>
     );
 };

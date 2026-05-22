@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getObservationsForServiceRequest, getHistoricalObservationSeriesForServiceRequest, updateObservation, getEncounterById, getOrganizationById, getReportApprovalStatus, sendObservationsForVerification, approveObservations, downloadReport } from '../services/api';
+import { getObservationsForServiceRequest, getHistoricalObservationSeriesForServiceRequest, updateObservation, getEncounterById, getOrganizationById, getReportApprovalStatus, sendObservationsForVerification, approveObservations, downloadReport, getUsersByOrganization } from '../services/api';
 import { useNotifications } from '../services/NotificationContext';
-import type { Encounter, Organization, ReportApprovalStatus } from '../types';
+import type { Encounter, Organization, ReportApprovalStatus, User } from '../types';
 import { WorkflowStepper } from '../components/WorkflowStepper';
 
 const parseObservationId = (observationId: string): number => {
@@ -126,6 +126,8 @@ const ViewObservations: React.FC = () => {
     const [isSubmittingForVerification, setIsSubmittingForVerification] = useState(false);
     const [isApprovingAsDoctor, setIsApprovingAsDoctor] = useState(false);
     const [historicalObservationSeries, setHistoricalObservationSeries] = useState<Record<string, NumericHistoryPoint[]>>({});
+    const [doctorUsers, setDoctorUsers] = useState<User[]>([]);
+    const [selectedApprovingPractitionerId, setSelectedApprovingPractitionerId] = useState<string>('');
     const encounterErrorNotifiedRef = useRef(false);
 
     const currentRoles: string[] = (() => {
@@ -145,8 +147,46 @@ const ViewObservations: React.FC = () => {
     };
 
     const canSendForVerification = hasRole('ADMIN') || hasRole('TECHNICIAN');
-    const canApproveAsDoctor = hasRole('PATHOLOGIST') || hasRole('DOCTOR');
+    const isAdminUser = hasRole('ADMIN');
+    const canApproveAsDoctor = isAdminUser || hasRole('PATHOLOGIST') || hasRole('DOCTOR');
     const isReportDownloadReady = Boolean(reportApprovalStatus?.reportStorageReference) || Boolean(reportApprovalStatus?.reportPdfPath);
+
+    useEffect(() => {
+        const loadDoctorUsers = async () => {
+            if (!isAdminUser) {
+                setDoctorUsers([]);
+                setSelectedApprovingPractitionerId('');
+                return;
+            }
+
+            const organizationId = localStorage.getItem('organizationId');
+            if (!organizationId) {
+                return;
+            }
+
+            try {
+                const users = await getUsersByOrganization(organizationId);
+                const filteredDoctors = users.filter((user) => {
+                    const roles = Array.isArray(user.roles) ? user.roles : [];
+                    return roles.some((role) => ['PATHOLOGIST', 'DOCTOR'].includes(String(role).toUpperCase().replace(/^ROLE_/, '')));
+                });
+                setDoctorUsers(filteredDoctors);
+
+                setSelectedApprovingPractitionerId((previousValue) => {
+                    if (previousValue && filteredDoctors.some((doctor) => String(doctor.practitionerId ?? doctor.id) === previousValue)) {
+                        return previousValue;
+                    }
+                    const firstDoctor = filteredDoctors[0];
+                    return firstDoctor ? String(firstDoctor.practitionerId ?? firstDoctor.id) : '';
+                });
+            } catch (error) {
+                console.error('Failed to load doctor users for approval dropdown', error);
+                setDoctorUsers([]);
+            }
+        };
+
+        loadDoctorUsers();
+    }, [isAdminUser]);
 
     const groupedObservations = useMemo(() => {
         const grouped = observations.reduce((acc, obs, index) => {
@@ -603,9 +643,25 @@ const ViewObservations: React.FC = () => {
             return;
         }
 
+        const approvingPractitionerId = isAdminUser
+            ? Number(selectedApprovingPractitionerId)
+            : undefined;
+
+        if (isAdminUser && (!Number.isFinite(approvingPractitionerId) || !approvingPractitionerId)) {
+            addNotification({
+                type: 'info',
+                title: 'Select Doctor',
+                message: 'Please choose a doctor before approving as admin.',
+            });
+            return;
+        }
+
         try {
             setIsApprovingAsDoctor(true);
-            await approveObservations(observationIds);
+            await approveObservations({
+                observationIds,
+                approvingPractitionerId: approvingPractitionerId || undefined,
+            });
             await loadObservations();
             await refreshReportApprovalStatus(true);
             addNotification({
@@ -817,14 +873,42 @@ const ViewObservations: React.FC = () => {
                                     </button>
                                 )}
                                 {canApproveAsDoctor && (
-                                    <button
-                                        type="button"
-                                        onClick={handleDoctorApprove}
-                                        disabled={isApprovingAsDoctor || observations.length === 0}
-                                        className="px-3 py-1.5 text-xs rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
-                                    >
-                                        {isApprovingAsDoctor ? 'Approving...' : 'Approve as Doctor'}
-                                    </button>
+                                    <div className="flex flex-col gap-2 rounded-lg border border-emerald-200 bg-emerald-50 p-3 min-w-[280px]">
+                                        {isAdminUser && (
+                                            <div>
+                                                <label className="block text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">
+                                                    Approve as Doctor
+                                                </label>
+                                                <select
+                                                    value={selectedApprovingPractitionerId}
+                                                    onChange={(e) => setSelectedApprovingPractitionerId(e.target.value)}
+                                                    className="w-full rounded-md border border-emerald-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm focus:border-emerald-400 focus:outline-none"
+                                                >
+                                                    {doctorUsers.length === 0 ? (
+                                                        <option value="">No doctors available</option>
+                                                    ) : (
+                                                        doctorUsers.map((doctor) => {
+                                                            const doctorName = `${doctor.practitionerFirstName || ''} ${doctor.practitionerLastName || ''}`.trim() || doctor.username;
+                                                            const doctorPractitionerId = String(doctor.practitionerId ?? doctor.id);
+                                                            return (
+                                                                <option key={doctor.id} value={doctorPractitionerId}>
+                                                                    {doctorName}
+                                                                </option>
+                                                            );
+                                                        })
+                                                    )}
+                                                </select>
+                                            </div>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={handleDoctorApprove}
+                                            disabled={isApprovingAsDoctor || observations.length === 0 || (isAdminUser && doctorUsers.length === 0)}
+                                            className="px-3 py-1.5 text-xs rounded-md bg-green-600 text-white hover:bg-green-700 disabled:opacity-60"
+                                        >
+                                            {isApprovingAsDoctor ? 'Approving...' : 'Approve as Doctor'}
+                                        </button>
+                                    </div>
                                 )}
                             </div>
                         </div>

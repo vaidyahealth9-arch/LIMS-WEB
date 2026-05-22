@@ -316,7 +316,7 @@ const LabManagement: React.FC = () => {
     const hasDoctorRole = (roles: string[] = []) => {
         return roles.some((role) => {
             const normalized = String(role || '').toUpperCase().replace(/^ROLE_/, '');
-            return normalized === 'PATHOLOGIST' || normalized === 'DOCTOR' || normalized === 'RADIOLOGIST';
+            return normalized === 'PATHOLOGIST' || normalized === 'DOCTOR';
         });
     };
 
@@ -909,7 +909,7 @@ const LabManagement: React.FC = () => {
 
                 {doctorUsers.length === 0 ? (
                     <div className="text-sm text-gray-600 bg-gray-50 border border-gray-200 rounded px-4 py-3">
-                        No doctor/pathologist/radiologist users found in this organization.
+                        No doctor/pathologist users found in this organization.
                     </div>
                 ) : (
                     <>

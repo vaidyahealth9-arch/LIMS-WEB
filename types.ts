@@ -1,14 +1,13 @@
 export enum UserRole {
     Admin = 'Admin',
-    Manager = 'Manager',
     Receptionist = 'Receptionist',
     Technician = 'Technician',
     Doctor = 'Doctor',
-    Radiologist = 'Radiologist',
 }
 
 export interface User {
     id: number;
+    practitionerId?: number;
     username: string;
     roles: string[];
     isActive: boolean;
@@ -306,6 +305,7 @@ export interface Encounter {
     tests: string[];
     localEncounterValue?: string;
     serviceRequestIds?: number[];
+        specimenBarcodes?: string[];
     approvingPractitionerId?: number;
 }
 
@@ -405,6 +405,7 @@ export interface Bill {
     testItems?: BillTestItem[];
     notes?: string;
     dueDate?: string;
+    encounterStatus?: string;
 }
 
 export interface BillableTest {

@@ -25,6 +25,19 @@ const hasKnownEncounterStatus = (encounterStatus?: string) => {
     return typeof encounterStatus === 'string' && encounterStatus.trim().length > 0;
 };
 
+const isLocallyUnlockedEncounter = (encounterId?: string | number): boolean => {
+    if (encounterId === null || encounterId === undefined) return false;
+
+    try {
+        const stored = JSON.parse(localStorage.getItem('lims-unlocked-encounters') || '[]');
+        if (!Array.isArray(stored)) return false;
+        const numericId = Number(encounterId);
+        return stored.map((value) => Number(value)).some((value) => Number.isInteger(value) && value === numericId);
+    } catch {
+        return false;
+    }
+};
+
 const isClosedServiceRequestStatus = (status?: string) => {
     const normalized = String(status || '').toUpperCase().replace(/[-_]/g, '');
     return normalized === 'COMPLETED' || normalized === 'CANCELLED' || normalized === 'REVOKED' || normalized === 'ENTEREDINERROR';
@@ -88,7 +101,7 @@ const TestEntry: React.FC = () => {
     const isDoctorReviewRole = useMemo(() => {
         return roles.some((role: string) => {
             const normalized = String(role || '').toUpperCase().replace(/^ROLE_/, '');
-            return normalized === 'PATHOLOGIST' || normalized === 'DOCTOR' || normalized === 'RADIOLOGIST';
+            return normalized === 'PATHOLOGIST' || normalized === 'DOCTOR';
         });
     }, [roles]);
 
@@ -164,10 +177,16 @@ const TestEntry: React.FC = () => {
     };
 
     const ensureEncounterUnlocked = async (request: ServiceRequest): Promise<boolean> => {
+        if (isLocallyUnlockedEncounter((request as any).encounterId)) {
+            return true;
+        }
+
         const rowEncounterStatus = (request as any).encounterStatus as string | undefined;
 
         if (hasKnownEncounterStatus(rowEncounterStatus)) {
-            return isEncounterUnlockedForProcessing(rowEncounterStatus);
+            if (isEncounterUnlockedForProcessing(rowEncounterStatus)) {
+                return true;
+            }
         }
 
         try {
@@ -236,7 +255,7 @@ const TestEntry: React.FC = () => {
                             machineValue: '',
                             units: analyte.unit,
                             resultType: analyteResultType || (existingObs?.valueNumeric != null ? 'numeric' : existingObs?.valueCode ? 'coded' : 'text'),
-                            normalRange: existingObs?.referenceRange || analyte.referenceRange || analyte.biologicalRefInterval || 'N/A',
+                            normalRange: existingObs?.referenceRange || analyte.referenceRange || 'N/A',
                             comments: existingObs?.comments || '',
                             specimenId: null,
                             analyteId: analyte.analyteId,
@@ -527,9 +546,12 @@ const TestEntry: React.FC = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {serviceRequests.map((req) => {
                                 const encounterStatus = (req as any).encounterStatus as string | undefined;
-                                const canProcess = hasKnownEncounterStatus(encounterStatus)
-                                    ? isEncounterUnlockedForProcessing(encounterStatus)
-                                    : true;
+                                const isLocallyUnlocked = isLocallyUnlockedEncounter((req as any).encounterId);
+                                const canProcess = isLocallyUnlocked
+                                    ? true
+                                    : hasKnownEncounterStatus(encounterStatus)
+                                        ? isEncounterUnlockedForProcessing(encounterStatus)
+                                        : true;
 
                                 return (
                                 <tr
@@ -549,22 +571,20 @@ const TestEntry: React.FC = () => {
                                                 ✓ Selected
                                             </span>
                                         )}
-                                        {canProcess && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    e.stopPropagation();
-                                                    handleViewObservations(req);
-                                                }}
-                                                className={`${selectedRequest?.id === req.id ? 'ml-2' : ''} px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-md hover:from-blue-700 hover:to-indigo-700 shadow-sm hover:shadow-md transition-all active:scale-95`}
-                                            >
-                                                {isDoctorReviewRole
-                                                    ? 'Review & Approve'
-                                                    : (req.status === 'ACTIVE' || req.status === 'PENDING')
-                                                        ? 'Enter / Verify'
-                                                        : 'View Observations'}
-                                            </button>
-                                        )}
+                                        <button
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleViewObservations(req);
+                                            }}
+                                            className={`${selectedRequest?.id === req.id ? 'ml-2' : ''} px-3 py-1.5 text-xs font-semibold text-white rounded-md shadow-sm hover:shadow-md transition-all active:scale-95 ${canProcess ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' : 'bg-gradient-to-r from-slate-400 to-slate-500 hover:from-slate-500 hover:to-slate-600'}`}
+                                        >
+                                            {isDoctorReviewRole
+                                                ? 'Review & Approve'
+                                                : (req.status === 'ACTIVE' || req.status === 'PENDING')
+                                                    ? 'Enter / Verify'
+                                                    : 'View Observations'}
+                                        </button>
                                         {!canProcess && (
                                             <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800" title="Complete billing/payment and click Start Progress in encounters to unlock processing">
                                                 Start Progress required

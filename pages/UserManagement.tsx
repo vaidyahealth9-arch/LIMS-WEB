@@ -4,28 +4,22 @@ import { Organization, User, UserCreateRequest, UserRole, UserUpdateRequest } fr
 
 const backendRoleToUiRole: Record<string, UserRole> = {
     ADMIN: UserRole.Admin,
-    MANAGER: UserRole.Manager,
     RECEPTIONIST: UserRole.Receptionist,
     TECHNICIAN: UserRole.Technician,
     PATHOLOGIST: UserRole.Doctor,
-    RADIOLOGIST: UserRole.Radiologist,
 };
 
 const roleOptions: { value: string; label: UserRole }[] = [
     { value: 'ADMIN', label: UserRole.Admin },
-    { value: 'MANAGER', label: UserRole.Manager },
     { value: 'RECEPTIONIST', label: UserRole.Receptionist },
     { value: 'TECHNICIAN', label: UserRole.Technician },
     { value: 'PATHOLOGIST', label: UserRole.Doctor },
-    { value: 'RADIOLOGIST', label: UserRole.Radiologist },
 ];
 
 const RoleBadge: React.FC<{ role: UserRole }> = ({ role }) => {
     const roleColors: { [key in UserRole]: string } = {
         [UserRole.Admin]: 'bg-red-100 text-red-800 border border-red-200',
-        [UserRole.Manager]: 'bg-indigo-100 text-indigo-800 border border-indigo-200',
         [UserRole.Doctor]: 'bg-cyan-100 text-cyan-800 border border-cyan-200',
-        [UserRole.Radiologist]: 'bg-purple-100 text-purple-800 border border-purple-200',
         [UserRole.Technician]: 'bg-yellow-100 text-yellow-800 border border-yellow-200',
         [UserRole.Receptionist]: 'bg-green-100 text-green-800 border border-green-200',
     };

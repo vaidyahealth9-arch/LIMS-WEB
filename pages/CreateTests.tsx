@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { getEnabledTestsForLab, createServiceRequest, getEncounterById, getServiceRequestById, updateServiceRequest, syncBill } from '../services/api';
+import { getEnabledTestsForLab, createServiceRequest, getEncounterById, getServiceRequestById, getSpecimensByServiceRequest, updateServiceRequest, syncBill } from '../services/api';
 import type { OrganizationTest, Encounter } from '../types';
 import { useNotifications } from '../services/NotificationContext';
 import { WorkflowStepper } from '../components/WorkflowStepper';
@@ -49,11 +49,38 @@ const CreateTests: React.FC = () => {
                 newDocument.write('</body></html>');
                 newDocument.close();
 
-                printWindow.focus();
-                setTimeout(() => {
-                    printWindow.print();
-                    printWindow.close();
-                }, 1000); // Wait for styles to load
+                const printWhenReady = () => {
+                    const images = Array.from(newDocument.images);
+                    if (images.length === 0) {
+                        printWindow.focus();
+                        printWindow.print();
+                        printWindow.close();
+                        return;
+                    }
+
+                    let loadedCount = 0;
+                    const tryPrint = () => {
+                        loadedCount += 1;
+                        if (loadedCount >= images.length) {
+                            printWindow.focus();
+                            printWindow.print();
+                            printWindow.close();
+                        }
+                    };
+
+                    images.forEach((image) => {
+                        if (image.complete) {
+                            tryPrint();
+                            return;
+                        }
+                        image.onload = tryPrint;
+                        image.onerror = tryPrint;
+                    });
+                };
+
+                printWindow.onload = () => {
+                    window.setTimeout(printWhenReady, 250);
+                };
             }
         }
     };
@@ -295,7 +322,43 @@ const CreateTests: React.FC = () => {
                     barcode: specimenBarcode
                 }));
             });
-            setGeneratedBarcodes(barcodes);
+
+            if (barcodes.length > 0) {
+                setGeneratedBarcodes((previousBarcodes) => {
+                    const merged = [...previousBarcodes, ...barcodes];
+                    const unique = new Map<string, { testName: string; barcode: string }>();
+                    merged.forEach((entry) => {
+                        unique.set(`${entry.testName}::${entry.barcode}`, entry);
+                    });
+                    return Array.from(unique.values());
+                });
+            } else {
+                const serviceRequestId = result?.id ?? activeServiceRequestId;
+                if (serviceRequestId) {
+                    try {
+                        const specimens = await getSpecimensByServiceRequest(String(serviceRequestId));
+                        const fallbackBarcodes = (specimens || [])
+                            .filter((specimen: any) => typeof specimen?.barcode === 'string' && specimen.barcode.trim().length > 0)
+                            .map((specimen: any) => ({
+                                testName: specimen?.specimenTypeName || 'Specimen',
+                                barcode: specimen.barcode,
+                            }));
+                        setGeneratedBarcodes((previousBarcodes) => {
+                            const merged = [...previousBarcodes, ...fallbackBarcodes];
+                            const unique = new Map<string, { testName: string; barcode: string }>();
+                            merged.forEach((entry) => {
+                                unique.set(`${entry.testName}::${entry.barcode}`, entry);
+                            });
+                            return Array.from(unique.values());
+                        });
+                    } catch (fallbackError) {
+                        console.warn('Unable to load specimen barcodes as fallback:', fallbackError);
+                        setGeneratedBarcodes((previousBarcodes) => previousBarcodes);
+                    }
+                } else {
+                    setGeneratedBarcodes((previousBarcodes) => previousBarcodes);
+                }
+            }
             setShowSuccess(true);
             
             addNotification({
@@ -501,7 +564,7 @@ const CreateTests: React.FC = () => {
                         
                         {/* Barcodes Grid */}
                         <div className="bg-slate-50/50 p-8 border-t border-slate-100">
-                            <div ref={barcodeRef} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                            <div ref={barcodeRef} className="barcode-print-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                 {generatedBarcodes.map((item, index) => (
                                     <div key={index} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition-shadow duration-300 print-barcode relative group overflow-hidden">
                                         <div className="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>

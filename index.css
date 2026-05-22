@@ -11,12 +11,33 @@
     }
     
     /* Position barcodes for printing (Labels) */
+    .barcode-print-grid {
+        display: grid !important;
+        grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+        gap: 0.18cm !important;
+        align-items: start !important;
+    }
+
     .print-barcode {
-        position: absolute;
-        left: 0;
-        top: 0;
+        position: relative !important;
+        left: auto !important;
+        top: auto !important;
+        width: auto !important;
+        padding: 0.18cm !important;
+        margin: 0 !important;
+        border: 1px solid #dbe7f3 !important;
+        box-shadow: none !important;
+        break-inside: avoid;
         page-break-inside: avoid;
-        page-break-after: always;
+        page-break-after: auto;
+        overflow: hidden;
+        border-radius: 0.18cm;
+        background: #fff;
+    }
+
+    .print-barcode img {
+        max-height: 1.65in;
+        width: auto;
     }
     
     /* Invoice Print Layout */

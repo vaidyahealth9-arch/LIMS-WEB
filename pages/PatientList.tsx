@@ -48,10 +48,9 @@ const BillingWorkflowStepper: React.FC<{
 }> = ({ hasBill, hasPayment, isSettled, isWorkflowComplete, onCreateOrEditBill, onRecordPayment, onViewBill, onUpdateBill }) => {
     const canUpdateBill = hasBill && !isSettled && !isWorkflowComplete;
     const steps = [
-        { label: hasBill ? 'Bill' : 'Create', active: true, completed: hasBill, onClick: onCreateOrEditBill },
-        { label: 'Payment', active: hasBill, completed: hasPayment || isSettled, onClick: onRecordPayment },
-        { label: 'View', active: hasBill, completed: hasBill, onClick: onViewBill },
-        { label: 'Sync', active: canUpdateBill, completed: !canUpdateBill && hasBill, onClick: onUpdateBill },
+        { label: hasBill ? 'Generated' : 'Generate', active: true, completed: hasBill, onClick: onCreateOrEditBill },
+        { label: 'Payment', active: hasBill && !isSettled, completed: hasPayment || isSettled, onClick: onRecordPayment },
+        { label: 'Settled', active: hasBill, completed: isSettled, onClick: onViewBill },
     ] as const;
 
     return (
@@ -132,7 +131,12 @@ const ActionButtons: React.FC<{
         onBill(encounter);
     };
 
-    const handlePrintReport = async () => {
+    const [isReportDownloading, setIsReportDownloading] = React.useState(false);
+    const [showReportDropdown, setShowReportDropdown] = React.useState(false);
+
+    const handleDownloadReport = async (withHeader: boolean, reportType: 'regular' | 'smart' = 'regular') => {
+        setShowReportDropdown(false);
+        setIsReportDownloading(true);
         try {
             let serviceRequestIds: number[] = Array.isArray(encounter.serviceRequestIds)
                 ? encounter.serviceRequestIds
@@ -156,11 +160,12 @@ const ActionButtons: React.FC<{
 
             for (const serviceRequestId of uniqueServiceRequestIds) {
                 try {
-                    const reportBlob = await downloadReport(serviceRequestId.toString());
+                    const reportBlob = await downloadReport(serviceRequestId.toString(), withHeader, reportType);
                     const url = window.URL.createObjectURL(reportBlob);
+                    const typeLabel = reportType === 'smart' ? 'smart' : 'report';
                     const fileName = uniqueServiceRequestIds.length > 1
-                        ? `report-${encounter.localEncounterValue || encounter.id}-${serviceRequestId}.pdf`
-                        : `report-${encounter.localEncounterValue || encounter.id}.pdf`;
+                        ? `${typeLabel}-${encounter.localEncounterValue || encounter.id}-${serviceRequestId}.pdf`
+                        : `${typeLabel}-${encounter.localEncounterValue || encounter.id}.pdf`;
 
                     const win = window.open(url, '_blank', 'noopener,noreferrer');
                     if (!win) {
@@ -197,13 +202,13 @@ const ActionButtons: React.FC<{
             addNotification({
                 type: 'success',
                 title: 'Report Ready',
-                message: successCount > 1
-                    ? `${successCount} reports downloaded for this encounter.`
-                    : 'Report downloaded successfully.',
+                message: `${reportType === 'smart' ? 'Smart' : 'Regular'} report${successCount > 1 ? 's' : ''} downloaded successfully.`,
             });
         } catch (error) {
             addNotification({ type: 'error', title: 'Download Failed', message: 'Could not download the report.' });
             console.error('Failed to download report:', error);
+        } finally {
+            setIsReportDownloading(false);
         }
     };
 
@@ -251,6 +256,16 @@ const ActionButtons: React.FC<{
                             </button>
                         )}
 
+                        {showBarcodes && (
+                            <button
+                                onClick={() => onViewBarcodes?.(encounter)}
+                                title="View barcodes"
+                                className={`${buttonClass} border-teal-300 text-teal-700 hover:bg-teal-50`}
+                            >
+                                View / Print Barcodes
+                            </button>
+                        )}
+
                         {canStartProgress && (
                             <button
                                 onClick={() => onStartProgress(encounter)}
@@ -271,7 +286,7 @@ const ActionButtons: React.FC<{
                             </button>
                         )}
 
-                        {(status === 'APPROVED' || isReportReady) && (
+                        {status !== 'COMPLETED' && (status === 'APPROVED' || isReportReady) && (
                             <button
                                 onClick={isBillSettled ? () => onCompleteEncounter(encounter) : () => onRecordPayment?.(encounter)}
                                 title={isBillSettled ? "Complete encounter" : "Pay outstanding due to complete"}
@@ -284,13 +299,57 @@ const ActionButtons: React.FC<{
                         )}
 
                         {canViewReport && (
-                            <button
-                                onClick={handlePrintReport}
-                                title="Download report"
-                                className={`${buttonClass} border-indigo-300 text-indigo-700 hover:bg-indigo-50`}
-                            >
-                                Download Report
-                            </button>
+                            <div className="relative w-full">
+                                <div className="flex rounded-xl overflow-hidden border border-indigo-300 shadow-sm">
+                                    {/* Primary action: Regular PDF with header */}
+                                    <button
+                                        onClick={() => handleDownloadReport(true, 'regular')}
+                                        disabled={isReportDownloading}
+                                        title="Download Regular PDF (with header)"
+                                        className="flex-1 px-3 py-2.5 text-xs font-semibold bg-white text-indigo-700 hover:bg-indigo-50 transition-all duration-150 flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        {isReportDownloading ? (
+                                            <>
+                                                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                                                Preparing...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                Download Report
+                                            </>
+                                        )}
+                                    </button>
+                                    {/* Dropdown toggle */}
+                                    <button
+                                        onClick={() => setShowReportDropdown(v => !v)}
+                                        disabled={isReportDownloading}
+                                        title="More report options"
+                                        className="px-2.5 py-2.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border-l border-indigo-300 transition-all duration-150 disabled:opacity-50"
+                                    >
+                                        <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${showReportDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" /></svg>
+                                    </button>
+                                </div>
+                                {showReportDropdown && (
+                                    <div className="absolute top-full left-0 right-0 z-20 mt-1 bg-white border border-slate-200 rounded-xl shadow-xl overflow-hidden">
+                                        <p className="px-3 py-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 border-b border-slate-100">Report Format</p>
+                                        {([
+                                            { label: '📄 Regular PDF — With Header', withHeader: true, type: 'regular' as const },
+                                            { label: '📄 Regular PDF — No Header', withHeader: false, type: 'regular' as const },
+                                            { label: '✨ Smart PDF — With Header', withHeader: true, type: 'smart' as const },
+                                            { label: '✨ Smart PDF — No Header', withHeader: false, type: 'smart' as const },
+                                        ]).map((opt) => (
+                                            <button
+                                                key={`${opt.type}-${opt.withHeader}`}
+                                                onClick={() => handleDownloadReport(opt.withHeader, opt.type)}
+                                                className="w-full text-left px-3 py-2.5 text-xs font-semibold text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors border-b border-slate-50 last:border-b-0"
+                                            >
+                                                {opt.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
@@ -316,7 +375,7 @@ const ActionButtons: React.FC<{
 };
 
 export const PatientList: React.FC = () => {
-    type DrawerTab = 'actions' | 'barcodes' | 'bill' | 'payment';
+    type DrawerTab = 'actions' | 'barcodes' | 'bill';
     type EncounterStatusFilter = 'ALL' | 'ACTIVE' | 'VERIFICATION' | 'APPROVED' | 'COMPLETED';
     const location = useLocation();
     const navigate = useNavigate();
@@ -404,7 +463,7 @@ export const PatientList: React.FC = () => {
         }
     }, []);
 
-    const isReceptionDeskRole = currentRoles.includes('RECEPTIONIST') || currentRoles.includes('ADMIN') || currentRoles.includes('MANAGER');
+    const isReceptionDeskRole = currentRoles.includes('RECEPTIONIST') || currentRoles.includes('ADMIN');
     const isDoctorRole = currentRoles.includes('DOCTOR') || currentRoles.includes('PATHOLOGIST') || currentRoles.includes('ADMIN');
 
     const handleBill = (encounter: Encounter) => {
@@ -412,43 +471,178 @@ export const PatientList: React.FC = () => {
         setIsBillingModalOpen(true);
     };
 
+    const loadBarcodesForEncounter = async (encounter: Encounter, openModal = false) => {
+        setSelectedEncounterForBarcodes(encounter);
+
+        try {
+            setIsLoadingBarcodes(true);
+            setBarcodesData([]);
+
+            const bills = await getBillsByEncounter(String(encounter.id));
+            const detailedEncounter = await getEncounterById(String(encounter.id)).catch(() => null);
+
+            // First, check if we have specimenBarcodes directly from encounter detail
+            if (Array.isArray(detailedEncounter?.specimenBarcodes) && detailedEncounter.specimenBarcodes.length > 0) {
+                const barcodes = detailedEncounter.specimenBarcodes
+                    .filter((barcode: unknown) => typeof barcode === 'string' && barcode.trim().length > 0)
+                    .map((barcode: string) => ({
+                        testName: 'Specimen',
+                        barcode,
+                        specimenLabel: 'Specimen',
+                        patientName: encounter.patientName,
+                        mrn: encounter.mrnId || ''
+                    }));
+                setBarcodesData(barcodes);
+                setBarcodesModalOpen(openModal);
+                return barcodes;
+            }
+
+            const billServiceRequestIds = Array.isArray(bills) && bills.length > 0
+                ? bills.flatMap((bill) => Array.isArray(bill.serviceRequestIds) ? bill.serviceRequestIds : [])
+                : [];
+            const encounterServiceRequestIds = Array.isArray(detailedEncounter?.serviceRequestIds)
+                ? detailedEncounter.serviceRequestIds
+                : [];
+
+            const serviceRequestIds = Array.from(new Set([...billServiceRequestIds, ...encounterServiceRequestIds]));
+
+            if (serviceRequestIds.length === 0) {
+                addNotification({ type: 'info', title: 'No Barcodes', message: 'No service requests found for this encounter.' });
+                setBarcodesModalOpen(openModal);
+                return [];
+            }
+
+            const { getServiceRequestById, getSpecimensByServiceRequest } = await import('../services/api');
+            const barcodesList = await Promise.all(
+                serviceRequestIds.map(async (srId: number) => {
+                    try {
+                        const sr = await getServiceRequestById(String(srId));
+                        const requestedTests = sr.requestedTests || [];
+
+                        const mappedFromRequestedTests = requestedTests.flatMap((test: any) =>
+                            (Array.isArray(test?.specimenBarcodes) ? test.specimenBarcodes : [])
+                                .filter((barcode: unknown) => typeof barcode === 'string' && barcode.trim().length > 0)
+                                .map((barcode: string) => ({
+                                    testName: test?.testName || 'Test',
+                                    barcode,
+                                    specimenLabel: test?.specimenTypeName || test?.specimenLabel || 'Specimen',
+                                    patientName: encounter.patientName,
+                                    mrn: encounter.mrnId || ''
+                                }))
+                        );
+
+                        if (mappedFromRequestedTests.length > 0) {
+                            return mappedFromRequestedTests;
+                        }
+
+                        // Fallback for response shapes where specimenBarcodes are not populated
+                        const specimens = await getSpecimensByServiceRequest(String(srId));
+                        return (specimens || [])
+                            .filter((specimen: any) => typeof specimen?.barcode === 'string' && specimen.barcode.trim().length > 0)
+                            .map((specimen: any, index: number) => ({
+                                testName: specimen?.specimenTypeName || `Specimen ${index + 1}`,
+                                barcode: specimen.barcode,
+                                specimenLabel: specimen?.localSpecimenValue || specimen?.serviceRequestLocalValue || specimen?.id || specimen?.specimenTypeName || `Specimen ${index + 1}`,
+                                patientName: encounter.patientName,
+                                mrn: encounter.mrnId || ''
+                            }));
+                    } catch {
+                        return [];
+                    }
+                })
+            );
+
+            const flattened = barcodesList.flat();
+            setBarcodesData(flattened);
+            setBarcodesModalOpen(openModal);
+
+            if (flattened.length === 0) {
+                addNotification({ type: 'info', title: 'No Barcodes', message: 'No barcode data is available for this encounter yet.' });
+            }
+
+            return flattened;
+        } catch (error) {
+            addNotification({ type: 'error', title: 'Error', message: 'Failed to load barcodes.' });
+            console.error('Failed to load barcodes:', error);
+            return [];
+        } finally {
+            setIsLoadingBarcodes(false);
+        }
+    };
+
     const handlePrintBarcodes = () => {
-        if (barcodesData.length === 0) return;
-        
+        const printEncounter = selectedEncounterForBarcodes || selectedEncounterForActions;
+        if (!printEncounter || barcodesData.length === 0) return;
+
         const printWindow = window.open('', '_blank');
         if (!printWindow) return;
 
         const barcodeHtml = barcodesData.map(item => `
-            <div style="display: inline-block; width: 45mm; border: 1px solid #eee; padding: 10px; margin: 5px; text-align: center; font-family: sans-serif;">
-                <div style="font-size: 8pt; font-weight: bold; margin-bottom: 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${item.testName}</div>
-                <div style="display: flex; justify-content: center; margin: 4px 0;">
+            <div style="display: inline-flex; flex-direction: column; width: 48%; border: 1px solid #dbe7f3; border-radius: 8px; padding: 10px; margin: 1%; text-align: center; font-family: Arial, sans-serif; box-sizing: border-box; break-inside: avoid; page-break-inside: avoid;">
+                <div style="font-size: 8pt; font-weight: 700; margin-bottom: 5px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #0f172a;">${item.testName || item.specimenTypeName || 'Specimen'}</div>
+                <div style="display: flex; justify-content: center; align-items: center; min-height: 45mm; margin: 5px 0;">
                     ${typeof item.barcode === 'string' && /^[A-Za-z0-9+/=]+$/.test(item.barcode)
-                        ? `<img src="data:image/png;base64,${item.barcode}" style="max-height: 20mm; max-width: 100%;" />`
-                        : `<div style="font-size: 10pt; background: #f0f0f0; padding: 4px; border: 1px dashed #ccc;">${item.barcode}</div>`
+                        ? `<img src="data:image/png;base64,${item.barcode}" style="max-height: 50mm; max-width: 100%; display: block;" />`
+                        : `<div style="font-size: 8pt; background: #f8fafc; padding: 4px; border: 1px dashed #cbd5e1; border-radius: 4px;">${item.barcode || ''}</div>`
                     }
                 </div>
-                <div style="font-size: 7pt; margin-top: 4px; line-height: 1.2;">
-                    <div style="font-weight: bold;">${item.patientName}</div>
-                    <div>MRN: ${item.mrn}</div>
-                    <div style="font-size: 6pt; color: #666; margin-top: 2px;">${item.barcode}</div>
+                <div style="font-size: 7pt; margin-top: 4px; line-height: 1.3; color: #334155;">
+                    <div style="font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">${item.patientName || printEncounter.patientName}</div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 2px;">
+                        <span>MRN: ${item.mrn || printEncounter.mrnId}</span>
+                        <span>SID: ${item.specimenLabel || item.localSpecimenValue || item.id || ''}</span>
+                    </div>
                 </div>
             </div>
         `).join('');
 
         printWindow.document.write(`
             <html>
-                <head><title>Barcodes - ${barcodesData[0]?.patientName}</title></head>
-                <body style="margin: 0; padding: 10px;">
-                    <div style="display: flex; flex-wrap: wrap;">
+                <head>
+                    <title>Barcodes - ${printEncounter.patientName}</title>
+                    <style>
+                        @media print {
+                            @page { margin: 0; }
+                            body { padding: 10mm; }
+                        }
+                        body { margin: 0; padding: 10mm; font-family: Arial, sans-serif; background: #fff; }
+                        .barcode-grid { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: flex-start; gap: 0; }
+                    </style>
+                </head>
+                <body>
+                    <div class="barcode-grid">
                         ${barcodeHtml}
                     </div>
                     <script>
-                        window.onload = () => {
-                            setTimeout(() => {
+                        const waitForImages = () => {
+                            const images = Array.from(document.images || []);
+                            if (images.length === 0) {
+                                window.focus();
                                 window.print();
-                                window.onafterprint = () => window.close();
-                            }, 500);
+                                return;
+                            }
+
+                            let resolved = 0;
+                            const printIfReady = () => {
+                                resolved += 1;
+                                if (resolved >= images.length) {
+                                    window.focus();
+                                    window.print();
+                                }
+                            };
+
+                            images.forEach((img) => {
+                                if (img.complete) {
+                                    printIfReady();
+                                } else {
+                                    img.onload = printIfReady;
+                                    img.onerror = printIfReady;
+                                }
+                            });
                         };
+
+                        window.onload = () => setTimeout(waitForImages, 200);
+                        window.onafterprint = () => window.close();
                     </script>
                 </body>
             </html>
@@ -457,81 +651,7 @@ export const PatientList: React.FC = () => {
     };
 
     const handleViewBarcodes = async (encounter: Encounter) => {
-        setSelectedEncounterForBarcodes(encounter);
-        try {
-            setIsLoadingBarcodes(true);
-            setBarcodesData([]);
-
-            const bills = await getBillsByEncounter(String(encounter.id));
-
-            const firstBill = Array.isArray(bills) && bills.length > 0 ? bills[0] : null;
-            let serviceRequestIds: number[] = Array.isArray(firstBill?.serviceRequestIds)
-                ? firstBill.serviceRequestIds
-                : [];
-
-            if (serviceRequestIds.length === 0) {
-                const detailedEncounter = await getEncounterById(String(encounter.id));
-                serviceRequestIds = Array.isArray(detailedEncounter?.serviceRequestIds)
-                    ? detailedEncounter.serviceRequestIds
-                    : [];
-            }
-
-            if (serviceRequestIds.length === 0) {
-                addNotification({ type: 'info', title: 'No Barcodes', message: 'No service requests found for this encounter.' });
-                return;
-            } else {
-                const { getServiceRequestById, getSpecimensByServiceRequest } = await import('../services/api');
-                const barcodesList = await Promise.all(
-                    serviceRequestIds.map(async (srId: number) => {
-                        try {
-                            const sr = await getServiceRequestById(String(srId));
-                            const requestedTests = sr.requestedTests || [];
-
-                            const mappedFromRequestedTests = requestedTests.flatMap((test: any) =>
-                                (Array.isArray(test?.specimenBarcodes) ? test.specimenBarcodes : [])
-                                    .filter((barcode: unknown) => typeof barcode === 'string' && barcode.trim().length > 0)
-                                    .map((barcode: string) => ({
-                                        testName: test?.testName || 'Test',
-                                        barcode,
-                                        patientName: encounter.patientName,
-                                        mrn: encounter.patientMrn || encounter.mrnId || ''
-                                    }))
-                            );
-
-                            if (mappedFromRequestedTests.length > 0) {
-                                return mappedFromRequestedTests;
-                            }
-
-                            // Fallback for response shapes where specimenBarcodes are not populated
-                            const specimens = await getSpecimensByServiceRequest(String(srId));
-                            return (specimens || [])
-                                .filter((specimen: any) => typeof specimen?.barcode === 'string' && specimen.barcode.trim().length > 0)
-                                .map((specimen: any, index: number) => ({
-                                    testName: specimen?.specimenTypeName || `Specimen ${index + 1}`,
-                                    barcode: specimen.barcode,
-                                    patientName: encounter.patientName,
-                                    mrn: encounter.patientMrn || encounter.mrnId || ''
-                                }));
-                        } catch {
-                            return [];
-                        }
-                    })
-                );
-
-                const flattened = barcodesList.flat();
-                setBarcodesData(flattened);
-                setBarcodesModalOpen(true);
-
-                if (flattened.length === 0) {
-                    addNotification({ type: 'info', title: 'No Barcodes', message: 'No barcode data is available for this encounter yet.' });
-                }
-            }
-        } catch (error) {
-            addNotification({ type: 'error', title: 'Error', message: 'Failed to load barcodes.' });
-            console.error('Failed to load barcodes:', error);
-        } finally {
-            setIsLoadingBarcodes(false);
-        }
+        await loadBarcodesForEncounter(encounter, true);
     };
 
     const handleViewBill = async (encounter: Encounter) => {
@@ -746,6 +866,17 @@ export const PatientList: React.FC = () => {
             }
 
             await updateEncounterStatus(encounter.id.toString(), { status: 'IN_PROGRESS' });
+            try {
+                const key = 'lims-unlocked-encounters';
+                const current = JSON.parse(localStorage.getItem(key) || '[]');
+                const ids = Array.isArray(current) ? current.map((value) => Number(value)).filter((value) => Number.isInteger(value) && value > 0) : [];
+                if (!ids.includes(encounter.id)) {
+                    ids.push(encounter.id);
+                    localStorage.setItem(key, JSON.stringify(ids));
+                }
+            } catch {
+                // Ignore localStorage issues; backend update already succeeded.
+            }
             onEncounterUpdate();
         } catch (error) {
             console.error('Failed to start progress', error);
@@ -1010,10 +1141,8 @@ export const PatientList: React.FC = () => {
     };
 
     const handleViewBarcodesInDrawer = async (encounter: Encounter) => {
-        setSelectedEncounterForBarcodes(encounter);
         setActionsDrawerTab('barcodes');
-        await handleViewBarcodes(encounter);
-        setBarcodesModalOpen(false);
+        await loadBarcodesForEncounter(encounter, false);
     };
 
     const handleViewBillInDrawer = async (encounter: Encounter) => {
@@ -1025,9 +1154,8 @@ export const PatientList: React.FC = () => {
 
     const handleRecordPaymentInDrawer = async (encounter: Encounter) => {
         setSelectedEncounterForPayment(encounter);
-        setActionsDrawerTab('payment');
+        setActionsDrawerTab('bill');
         await handleRecordPayment(encounter);
-        setPaymentModalOpen(false);
     };
 
     useEffect(() => {
@@ -1069,6 +1197,30 @@ export const PatientList: React.FC = () => {
         }
         setBillDetailsData(null);
     }, [selectedEncounterForActions?.id]);
+
+    useEffect(() => {
+        if (!selectedEncounterForActions || actionsDrawerTab !== 'barcodes') {
+            return;
+        }
+
+        if (isLoadingBarcodes || barcodesData.length > 0) {
+            return;
+        }
+
+        void loadBarcodesForEncounter(selectedEncounterForActions, false);
+    }, [actionsDrawerTab, barcodesData.length, isLoadingBarcodes, selectedEncounterForActions]);
+
+    useEffect(() => {
+        if (!selectedEncounterForActions || actionsDrawerTab !== 'bill') {
+            return;
+        }
+
+        if (billDetailsData) {
+            return;
+        }
+
+        void handleViewBill(selectedEncounterForActions);
+    }, [actionsDrawerTab, billDetailsData, selectedEncounterForActions]);
 
     return (
         <div className="bg-gradient-to-br from-white to-cyan-50 p-6 rounded-xl shadow-lg border border-cyan-100">
@@ -1423,9 +1575,9 @@ export const PatientList: React.FC = () => {
                                                             <p className="text-xs font-bold text-blue-900 uppercase tracking-wider mb-3 w-full text-center truncate px-2">{test.testName}</p>
                                                             <div className="bg-slate-50/50 rounded-xl border border-slate-100 p-3 flex flex-col items-center w-full">
                                                                 {typeof test.barcode === 'string' && /^[A-Za-z0-9+/=]+$/.test(test.barcode)
-                                                                    ? <img src={`data:image/png;base64,${test.barcode}`} alt={`Barcode for ${test.testName}`} className="max-h-16 mb-2" />
+                                                                    ? <img src={`data:image/png;base64,${test.barcode}`} alt={`Barcode for ${test.testName}`} className="max-h-48 mb-2" />
                                                                     : <Barcode value={String(test.barcode)} height={40} displayValue={false} width={1.2} />}
-                                                                <span className="text-[10px] font-mono text-slate-500 mt-1">{test.barcode}</span>
+                                                                <span className="text-[10px] font-mono text-slate-500 mt-1">SID: {test.specimenLabel || test.localSpecimenValue || test.id || 'N/A'}</span>
                                                             </div>
                                                             <div className="mt-3 w-full border-t border-slate-100 pt-2 text-center">
                                                                 <p className="text-[11px] font-bold text-slate-700 truncate">{test.patientName}</p>

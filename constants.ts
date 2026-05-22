@@ -5,6 +5,7 @@ export const navLinks = [
     { name: 'Patient Encounters', path: '/patient-list', icon: 'users' },
     { name: 'Entry & Verify', path: '/entry-verify', icon: 'beaker' },
     { name: 'Billing', path: '/billing', icon: 'billing' },
+    { name: 'Subscription', path: '/subscription', icon: 'billing' },
     { name: 'Lab Management', path: '/lab-management', icon: 'flask' },
     { name: 'Patient Data', path: '/patient-data', icon: 'users' },
 

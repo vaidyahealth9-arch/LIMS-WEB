@@ -1,5 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNotifications } from '../services/NotificationContext';
+import { useSubscription } from '../services/SubscriptionContext';
+import { Clock } from 'lucide-react';
 
 const Header: React.FC<{ user: { username: string, roles: string[], organizationName: string } | null, handleLogout: Function }> = ({ user, handleLogout }) => {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -8,6 +10,7 @@ const Header: React.FC<{ user: { username: string, roles: string[], organization
     const dropdownRef = useRef<HTMLDivElement>(null);
     const notificationRef = useRef<HTMLDivElement>(null);
     const { notifications } = useNotifications();
+    const { remainingTime, isSubscribed } = useSubscription();
 
     // Track notification history
     useEffect(() => {
@@ -56,6 +59,20 @@ const Header: React.FC<{ user: { username: string, roles: string[], organization
         <header className="flex items-center justify-end h-20 px-6 bg-white border-b flex-shrink-0">
             {user && (
                 <div className="flex items-center gap-2">
+                    {/* Subscription Countdown */}
+                    {remainingTime && (
+                        <div className={`mr-2 flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                            isSubscribed 
+                                ? 'bg-gradient-to-r from-cyan-50 to-teal-50 border-cyan-100 text-cyan-700' 
+                                : 'bg-red-50 border-red-100 text-red-600 animate-pulse'
+                        }`}>
+                            <Clock className="w-4 h-4" />
+                            <span className="text-xs font-bold uppercase tracking-wider">
+                                {isSubscribed ? `Ends in: ${remainingTime}` : 'Subscription Expired'}
+                            </span>
+                        </div>
+                    )}
+
                     {/* Notification Bell */}
                     <div className="relative" ref={notificationRef}>
                         <button 

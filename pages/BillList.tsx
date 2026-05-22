@@ -463,7 +463,7 @@ export const BillList: React.FC = () => {
                                     <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600 text-right">₹{bill.paidAmount.toFixed(2)}</td>
                                     <td className="px-4 py-3 min-w-[150px]">
                                         <WorkflowStepper 
-                                            status={bill.status === 'PAID' ? 'IN_PROGRESS' : 'ARRIVED'} 
+                                            status={bill.encounterStatus || (bill.status === 'PAID' ? 'IN_PROGRESS' : 'ARRIVED')} 
                                             hasTests={true}
                                             billStatus={bill.status}
                                         />

@@ -884,6 +884,7 @@ const normalizeBill = (rawBill: any): Bill => {
         testItems: normalizedTestItems,
         notes: rawBill?.notes,
         dueDate: rawBill?.dueDate,
+        encounterStatus: rawBill?.encounterStatus,
     } as Bill;
 };
 

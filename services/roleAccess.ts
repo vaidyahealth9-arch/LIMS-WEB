@@ -4,7 +4,7 @@ export const normalizeRoles = (roles: string[] = []): string[] => roles.map(norm
 
 const isDoctorLikeRole = (roles: string[] = []): boolean => {
     const normalized = normalizeRoles(roles);
-    return normalized.includes('DOCTOR') || normalized.includes('PATHOLOGIST') || normalized.includes('RADIOLOGIST');
+    return normalized.includes('DOCTOR') || normalized.includes('PATHOLOGIST');
 };
 
 const isAdminRole = (roles: string[] = []): boolean => normalizeRoles(roles).includes('ADMIN');
