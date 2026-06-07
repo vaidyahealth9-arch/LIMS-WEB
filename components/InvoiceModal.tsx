@@ -98,24 +98,32 @@ export const InvoiceModal: React.FC<InvoiceModalProps> = ({
             {/* ─── PRINT STYLES ─── */}
             <style>{`
                 @media print {
-                    /* Reset page margins to 0 so we can control them via padding */
                     @page {
                         size: A4 portrait;
-                        margin: 0;
+                        margin: 10mm;
                     }
 
-                    /* Hide everything except the modal */
+                    /* Reset container heights and overflows to allow proper multi-page printing */
+                    html, body, #root, [class*="h-screen"], [class*="overflow-hidden"], main {
+                        height: auto !important;
+                        overflow: visible !important;
+                        min-height: 0 !important;
+                    }
+
+                    /* Hide everything except the modal visually */
                     body { visibility: hidden; background: white !important; margin: 0 !important; padding: 0 !important; }
                     
                     #invoice-modal-wrapper { 
                         visibility: visible; 
+                        display: block !important;
                         position: absolute !important; 
                         left: 0 !important; 
                         top: 0 !important; 
-                        width: 210mm !important; /* Standard A4 width */
-                        min-height: 297mm !important; /* Standard A4 height */
+                        width: 100% !important;
+                        height: auto !important;
+                        min-height: 0 !important;
                         background: white !important;
-                        padding: 15mm !important; /* Safe internal margins */
+                        padding: 0 !important;
                         margin: 0 !important;
                         box-sizing: border-box !important;
                         backdrop-filter: none !important;

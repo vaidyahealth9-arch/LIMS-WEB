@@ -70,6 +70,7 @@ const Subscription: React.FC = () => {
     const [showContactModal, setShowContactModal] = useState(false);
     const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
     const [contactInfo, setContactInfo] = useState<ContactInfo>({ email: '', phone: '' });
+    const [skipTrialParam, setSkipTrialParam] = useState(false);
 
     useEffect(() => {
         fetchPlans();
@@ -123,9 +124,10 @@ const Subscription: React.FC = () => {
     };
 
     // Open contact info modal when user clicks "Choose Plan"
-    const handleSelectPlan = (plan: SubscriptionPlan) => {
+    const handleSelectPlan = (plan: SubscriptionPlan, skipTrial: boolean = false) => {
         if (!user?.organizationId) return;
         setSelectedPlan(plan);
+        setSkipTrialParam(skipTrial);
         setShowContactModal(true);
     };
 
@@ -146,10 +148,11 @@ const Subscription: React.FC = () => {
                     body: JSON.stringify({
                         planId: selectedPlan.id,
                         paymentMethod: 'upi',
-                        autoRenewal: true,
+                        autoRenewal: false,
                         customerName: user.username || user.organizationName,
                         contactEmail: contactInfo.email,
-                        contactPhone: contactInfo.phone
+                        contactPhone: contactInfo.phone,
+                        skipTrial: skipTrialParam
                     })
                 }
             );
@@ -162,9 +165,14 @@ const Subscription: React.FC = () => {
             const initiateResult = await initiateResponse.json();
             const initiateData = initiateResult.data;
 
-            if (!initiateData.isNewSubscription) {
-                // ACTIVE subscription pile-up: extend directly (no payment needed)
-                await confirmSubscription(null, null, null, selectedPlan.id);
+            // Handle both isNewSubscription and newSubscription keys to ensure compatibility with Jackson naming
+            const isNew = initiateData.isNewSubscription !== undefined
+                ? initiateData.isNewSubscription
+                : initiateData.newSubscription;
+
+            if (!isNew) {
+                // ACTIVE subscription pile-up fallback (no new payment needed)
+                await confirmSubscription(null, null, null, null, selectedPlan.id, initiateData.razorpayCustomerId);
                 return;
             }
 
@@ -177,26 +185,28 @@ const Subscription: React.FC = () => {
                 );
             }
 
-            if (!initiateData.razorpayKeyId || !initiateData.razorpaySubscriptionId) {
+            if (!initiateData.razorpayKeyId || (!initiateData.razorpaySubscriptionId && !initiateData.razorpayOrderId)) {
                 throw new Error(
                     'Payment gateway configuration is missing. ' +
-                    'Please contact support. (key or subscription_id is empty)'
+                    'Please contact support. (key, subscription_id or order_id is empty)'
                 );
             }
 
             const options = {
                 key: initiateData.razorpayKeyId,
-                subscription_id: initiateData.razorpaySubscriptionId,
                 name: 'Vaidya LIMS',
-                description: `${selectedPlan.planName} Plan — ${selectedPlan.trialDays} days free trial`,
-                image: '/vite.svg',
+                description: `${selectedPlan.planName} Plan`,
+                ...(initiateData.razorpaySubscriptionId ? { subscription_id: initiateData.razorpaySubscriptionId } : {}),
+                ...(initiateData.razorpayOrderId ? { order_id: initiateData.razorpayOrderId } : {}),
                 handler: async (paymentResponse: any) => {
                     // ── PHASE 3: Confirm — verify signature, save to DB ──
                     await confirmSubscription(
                         paymentResponse.razorpay_payment_id,
-                        paymentResponse.razorpay_subscription_id,
+                        paymentResponse.razorpay_subscription_id || null,
+                        paymentResponse.razorpay_order_id || null,
                         paymentResponse.razorpay_signature,
-                        selectedPlan.id
+                        selectedPlan.id,
+                        initiateData.razorpayCustomerId
                     );
                 },
                 prefill: {
@@ -230,8 +240,10 @@ const Subscription: React.FC = () => {
     const confirmSubscription = async (
         paymentId: string | null,
         razorpaySubscriptionId: string | null,
+        razorpayOrderId: string | null,
         signature: string | null,
-        planId: number
+        planId: number,
+        razorpayCustomerId: string | null
     ) => {
         try {
             const token = localStorage.getItem('token');
@@ -245,17 +257,19 @@ const Subscription: React.FC = () => {
                     contactEmail: contactInfo.email,
                     contactPhone: contactInfo.phone,
                     paymentMethod: 'upi',
-                    autoRenewal: true,
+                    autoRenewal: false,
                     razorpayPaymentId: paymentId,
                     razorpaySubscriptionId,
-                    razorpaySignature: signature
+                    razorpayOrderId,
+                    razorpaySignature: signature,
+                    razorpayCustomerId
                 })
             });
 
             if (confirmResponse.ok) {
                 addNotification({
                     title: 'Subscription Active!',
-                    message: `Your ${selectedPlan?.planName} plan is now active with a ${selectedPlan?.trialDays}-day free trial.`,
+                    message: `Your ${selectedPlan?.planName} plan is now active.`,
                     type: 'success'
                 });
                 await fetchCurrentSubscription();
@@ -413,20 +427,52 @@ const Subscription: React.FC = () => {
                         {/* Button Section */}
                         <div className="p-8 bg-white mt-auto">
                             <button
-                                onClick={() => handleSelectPlan(plan)}
-                                disabled={processingPayment}
-                                className="w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-600 to-teal-500 text-white shadow-lg hover:shadow-cyan-200 hover:-translate-y-1 active:translate-y-0 disabled:opacity-50"
+                                onClick={() => handleSelectPlan(plan, false)}
+                                disabled={processingPayment || currentSubscription?.planName === plan.planName}
+                                className={`w-full py-4 px-6 rounded-2xl font-bold text-lg transition-all duration-300 flex items-center justify-center gap-2 text-white shadow-lg disabled:opacity-50 ${
+                                    currentSubscription?.planName === plan.planName
+                                        ? 'bg-gray-400 cursor-not-allowed shadow-none'
+                                        : 'bg-gradient-to-r from-cyan-600 to-teal-500 hover:shadow-cyan-200 hover:-translate-y-1 active:translate-y-0'
+                                }`}
                             >
                                 {processingPayment ? (
                                     <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                                 ) : (
                                     <Zap className="w-5 h-5" />
                                 )}
-                                {currentSubscription?.planName === plan.planName ? 'Extend Current Plan' : 'Choose Plan & Subscribe'}
+                                {currentSubscription?.planName === plan.planName 
+                                    ? 'Current Active Plan' 
+                                    : (subscriptionSummary?.hasUsedTrial ? 'Choose Plan & Subscribe' : 'Choose Plan (Free Trial)')}
                             </button>
-                            <p className="text-center text-xs text-gray-400 mt-4 font-medium uppercase tracking-widest">
-                                includes {plan.trialDays} days free trial
-                            </p>
+
+                            {/* Pay Early / Pay Now button options */}
+                            {currentSubscription?.planName === plan.planName && subscriptionSummary?.isOnTrial && (
+                                <button
+                                    onClick={() => handleSelectPlan(plan, true)}
+                                    disabled={processingPayment}
+                                    className="w-full mt-3 py-3 px-6 rounded-2xl font-bold text-md transition-all duration-300 flex items-center justify-center gap-2 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 shadow-sm"
+                                >
+                                    <CreditCard className="w-4 h-4" />
+                                    Pay Early & Activate
+                                </button>
+                            )}
+
+                            {currentSubscription?.planName !== plan.planName && (
+                                <button
+                                    onClick={() => handleSelectPlan(plan, true)}
+                                    disabled={processingPayment}
+                                    className="w-full mt-3 py-3 px-6 rounded-2xl font-bold text-md transition-all duration-300 flex items-center justify-center gap-2 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 border border-cyan-200 shadow-sm"
+                                >
+                                    <CreditCard className="w-4 h-4" />
+                                    Pay & Activate Now
+                                </button>
+                            )}
+
+                            {!subscriptionSummary?.hasUsedTrial && (
+                                <p className="text-center text-xs text-gray-400 mt-4 font-medium uppercase tracking-widest">
+                                    includes {plan.trialDays} days free trial
+                                </p>
+                            )}
                         </div>
                     </div>
                 ))}
