@@ -40,4 +40,4 @@ jobs:
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPO }}/${{ env.SERVICE }}:${{ github.sha }}
           flags: '--allow-unauthenticated --port=8080'
           env_vars: |-
-            LIMS_API_UPSTREAM=https://dev-api.lims.vaidyahealth.com/
+            LIMS_API_UPSTREAM=https://lims-backend-331736313956.asia-south1.run.app
