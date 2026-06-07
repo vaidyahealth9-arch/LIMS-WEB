@@ -46,4 +46,4 @@ substitutions:
   _SERVICE_NAME: 'lims-web'
   _DOCKERFILE: 'Dockerfile'
   _RUNTIME_SA: '331736313956-compute@developer.gserviceaccount.com'
-  _LIMS_API_UPSTREAM: 'https://lims-backend-331736313956.asia-south1.run.app'
+  _LIMS_API_UPSTREAM: 'https://dev-api.lims.vaidyahealth.com'
