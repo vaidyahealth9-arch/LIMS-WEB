@@ -12,4 +12,4 @@ COPY --from=build /app/dist /usr/share/nginx/html
 COPY nginx.conf.template /etc/nginx/templates/default.conf.template
 RUN ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log
 EXPOSE 8080
-CMD ["/bin/sh", "-c", "LIMS_API_UPSTREAM=\"${LIMS_API_UPSTREAM%/api/}\"; export LIMS_API_UPSTREAM; envsubst '$$LIMS_API_UPSTREAM' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
+CMD ["/bin/sh", "-c", "LIMS_API_UPSTREAM=\"${LIMS_API_UPSTREAM%/api/}\"; export LIMS_API_UPSTREAM; LIMS_API_HOST=\"${LIMS_API_UPSTREAM#https://}\"; LIMS_API_HOST=\"${LIMS_API_HOST#http://}\"; export LIMS_API_HOST; envsubst '$$LIMS_API_UPSTREAM $$LIMS_API_HOST' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
