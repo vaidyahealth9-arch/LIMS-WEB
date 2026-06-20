@@ -74,7 +74,7 @@ const TestEntry: React.FC = () => {
     const [selectedRequest, setSelectedRequest] = useState<ServiceRequest | null>(null);
     const [analytes, setAnalytes] = useState<GroupedAnalyte[]>([]);
     const [results, setResults] = useState<{ [key: string]: ResultEntry }>({});
-    
+
     const [searchQuery, setSearchQuery] = useState('');
     const [startDate, setStartDate] = useState(defaultDateRange.startDate);
     const [endDate, setEndDate] = useState(defaultDateRange.endDate);
@@ -115,11 +115,11 @@ const TestEntry: React.FC = () => {
             const includeClosed = requestView !== 'open';
             // Assuming testIds filter is not needed for now, passing empty array
             const response = await searchServiceRequests(orgId, startDate, endDate, query, [], page - 1, pageSize, includeClosed);
-            
+
             const filteredRequests = (response.content || []).filter((req) => {
                 const closed = isClosedServiceRequestStatus(req.status);
                 const encounterStatus = String((req as any).encounterStatus || '').toUpperCase().replace(/[-\s]/g, '_');
-                
+
                 if (requestView === 'pending_verification') return encounterStatus === 'PENDING_VERIFICATION';
                 if (requestView === 'approved') return encounterStatus === 'APPROVED';
                 if (requestView === 'closed') return closed || encounterStatus === 'COMPLETED';
@@ -395,9 +395,18 @@ const TestEntry: React.FC = () => {
         }
     };
 
-    const handlePrint = () => {
+    const handlePrint = async () => {
         if (selectedRequest) {
-            navigate('/view-observations', { state: { serviceRequest: selectedRequest } });
+            setIsSaving(true);
+            try {
+                await saveObservations();
+                navigate('/view-observations', { state: { serviceRequest: selectedRequest } });
+            } catch (error: any) {
+                console.error("Failed to save observations:", error);
+                alert(`Error: ${error.message}`);
+            } finally {
+                setIsSaving(false);
+            }
         }
     };
 
@@ -411,16 +420,16 @@ const TestEntry: React.FC = () => {
                     </h2>
                     <p className="text-sm text-gray-600">Patient worklist for test data entry and verification</p>
                 </div>
-                
+
                 {selectedRequest && (
                     <div className="mt-4 bg-white/10 rounded-lg p-2 backdrop-blur-sm border border-white/20">
-                        <WorkflowStepper 
-                            status={(selectedRequest as any).encounterStatus || 'IN_PROGRESS'} 
+                        <WorkflowStepper
+                            status={(selectedRequest as any).encounterStatus || 'IN_PROGRESS'}
                             hasTests={true}
                         />
                     </div>
                 )}
-                
+
                 {/* Filters */}
                 <div className="mb-6 bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                     <div className="mb-3 flex items-center gap-2">
@@ -463,9 +472,9 @@ const TestEntry: React.FC = () => {
 
                     <div className="flex items-center gap-3 flex-wrap">
                         <div className="flex-1 min-w-[250px]">
-                            <input 
-                                type="text" 
-                                placeholder="Search by name, MRN, Lab ID..." 
+                            <input
+                                type="text"
+                                placeholder="Search by name, MRN, Lab ID..."
                                 className="w-full px-3 py-2 text-sm border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -473,18 +482,18 @@ const TestEntry: React.FC = () => {
                         </div>
 
                         <div className="flex items-center gap-2">
-                            <input 
-                                type="date" 
-                                className="px-3 py-2 text-sm border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all" 
-                                value={startDate} 
-                                onChange={e => setStartDate(e.target.value)} 
+                            <input
+                                type="date"
+                                className="px-3 py-2 text-sm border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
+                                value={startDate}
+                                onChange={e => setStartDate(e.target.value)}
                             />
                             <span className="text-gray-400 font-bold text-sm">→</span>
-                            <input 
-                                type="date" 
-                                className="px-3 py-2 text-sm border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all" 
-                                value={endDate} 
-                                onChange={e => setEndDate(e.target.value)} 
+                            <input
+                                type="date"
+                                className="px-3 py-2 text-sm border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all"
+                                value={endDate}
+                                onChange={e => setEndDate(e.target.value)}
                             />
                         </div>
 
@@ -519,15 +528,15 @@ const TestEntry: React.FC = () => {
                     {isLoading ? (
                         <div className="flex items-center justify-center py-12">
                             <svg className="animate-spin h-8 w-8 text-cyan-600" viewBox="0 0 24 24">
-                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"/>
-                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                             </svg>
                             <span className="ml-3 text-gray-600">Loading requests...</span>
                         </div>
                     ) : serviceRequests.length === 0 ? (
                         <div className="text-center py-12 text-gray-500">
                             <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
                             <p className="mt-2">No service requests found</p>
                         </div>
@@ -541,61 +550,61 @@ const TestEntry: React.FC = () => {
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Tests</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Date</th>
                                     <th className="px-4 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                            {serviceRequests.map((req) => {
-                                const encounterStatus = (req as any).encounterStatus as string | undefined;
-                                const isLocallyUnlocked = isLocallyUnlockedEncounter((req as any).encounterId);
-                                const canProcess = isLocallyUnlocked
-                                    ? true
-                                    : hasKnownEncounterStatus(encounterStatus)
-                                        ? isEncounterUnlockedForProcessing(encounterStatus)
-                                        : true;
-
-                                return (
-                                <tr
-                                    key={req.id}
-                                    onClick={() => handleSelectRequest(req)}
-                                    className={`transition-colors ${selectedRequest?.id === req.id ? 'bg-cyan-100' : 'hover:bg-cyan-50'} ${canProcess ? 'cursor-pointer' : 'cursor-not-allowed'}`}
-                                    title={canProcess ? 'Tap to select this request for entry' : 'Start progress after billing/payment to enable test entry.'}
-                                >
-                                    <td className="px-4 py-3 text-sm font-medium text-gray-900">{req.localOrderValue}</td>
-                                    <td className="px-4 py-3 text-sm font-medium text-cyan-600">{req.patientMrn}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-700 font-medium">{req.patientName}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{req.requestedTests.map(t => t.testName).join(', ')}</td>
-                                    <td className="px-4 py-3 text-sm text-gray-600">{new Date(req.orderDate).toLocaleDateString()}</td>
-                                    <td className="px-4 py-3">
-                                        {selectedRequest?.id === req.id && (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-cyan-100 text-cyan-800">
-                                                ✓ Selected
-                                            </span>
-                                        )}
-                                        <button
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                                handleViewObservations(req);
-                                            }}
-                                            className={`${selectedRequest?.id === req.id ? 'ml-2' : ''} px-3 py-1.5 text-xs font-semibold text-white rounded-md shadow-sm hover:shadow-md transition-all active:scale-95 ${canProcess ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' : 'bg-gradient-to-r from-slate-400 to-slate-500 hover:from-slate-500 hover:to-slate-600'}`}
-                                        >
-                                            {isDoctorReviewRole
-                                                ? 'Review & Approve'
-                                                : (req.status === 'ACTIVE' || req.status === 'PENDING')
-                                                    ? 'Enter / Verify'
-                                                    : 'View Observations'}
-                                        </button>
-                                        {!canProcess && (
-                                            <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800" title="Complete billing/payment and click Start Progress in encounters to unlock processing">
-                                                Start Progress required
-                                            </span>
-                                        )}
-                                    </td>
                                 </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {serviceRequests.map((req) => {
+                                    const encounterStatus = (req as any).encounterStatus as string | undefined;
+                                    const isLocallyUnlocked = isLocallyUnlockedEncounter((req as any).encounterId);
+                                    const canProcess = isLocallyUnlocked
+                                        ? true
+                                        : hasKnownEncounterStatus(encounterStatus)
+                                            ? isEncounterUnlockedForProcessing(encounterStatus)
+                                            : true;
+
+                                    return (
+                                        <tr
+                                            key={req.id}
+                                            onClick={() => handleSelectRequest(req)}
+                                            className={`transition-colors ${selectedRequest?.id === req.id ? 'bg-cyan-100' : 'hover:bg-cyan-50'} ${canProcess ? 'cursor-pointer' : 'cursor-not-allowed'}`}
+                                            title={canProcess ? 'Tap to select this request for entry' : 'Start progress after billing/payment to enable test entry.'}
+                                        >
+                                            <td className="px-4 py-3 text-sm font-medium text-gray-900">{req.localOrderValue}</td>
+                                            <td className="px-4 py-3 text-sm font-medium text-cyan-600">{req.patientMrn}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-700 font-medium">{req.patientName}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">{req.requestedTests.map(t => t.testName).join(', ')}</td>
+                                            <td className="px-4 py-3 text-sm text-gray-600">{new Date(req.orderDate).toLocaleDateString()}</td>
+                                            <td className="px-4 py-3">
+                                                {selectedRequest?.id === req.id && (
+                                                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-cyan-100 text-cyan-800">
+                                                        ✓ Selected
+                                                    </span>
+                                                )}
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        handleViewObservations(req);
+                                                    }}
+                                                    className={`${selectedRequest?.id === req.id ? 'ml-2' : ''} px-3 py-1.5 text-xs font-semibold text-white rounded-md shadow-sm hover:shadow-md transition-all active:scale-95 ${canProcess ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700' : 'bg-gradient-to-r from-slate-400 to-slate-500 hover:from-slate-500 hover:to-slate-600'}`}
+                                                >
+                                                    {isDoctorReviewRole
+                                                        ? 'Review & Approve'
+                                                        : (req.status === 'ACTIVE' || req.status === 'PENDING')
+                                                            ? 'Enter / Verify'
+                                                            : 'View Observations'}
+                                                </button>
+                                                {!canProcess && (
+                                                    <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-amber-100 text-amber-800" title="Complete billing/payment and click Start Progress in encounters to unlock processing">
+                                                        Start Progress required
+                                                    </span>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     )}
                 </div>
 

@@ -18,7 +18,7 @@ export const Billing: React.FC<{
     const [existingDue, setExistingDue] = useState(0);
     const [discount, setDiscount] = useState(0);
     const [paymentMethod, setPaymentMethod] = useState('CASH');
-    const [paidAmount, setPaidAmount] = useState(0);
+    const [paidAmount, setPaidAmount] = useState<number | string>(0);
     const [notes, setNotes] = useState('');
     const [dueDate, setDueDate] = useState('');
 
@@ -41,7 +41,7 @@ export const Billing: React.FC<{
                 }
             };
             fetchDetails();
-            
+
             setDiscount(0);
             setPaymentMethod('CASH');
             setPaidAmount(0);
@@ -85,12 +85,26 @@ export const Billing: React.FC<{
             return;
         }
 
+        const netPayable = Math.max(0, totalAmount * (1 - discount / 100) - alreadyPaid);
+        const currentPaid = isDuePayment ? Number(paidAmount) : netPayable;
+
+        if (isDuePayment) {
+            if (isNaN(currentPaid) || currentPaid <= 0) {
+                alert('Amount paying now is mandatory and must be greater than zero.');
+                return;
+            }
+            if (currentPaid > netPayable) {
+                alert(`Amount paying now cannot exceed the net payable amount (₹${netPayable.toFixed(2)}).`);
+                return;
+            }
+        }
+
         const billData = {
             encounterId: encounter.id,
             serviceRequestIds,
             discountPercentage: discount,
             initialPaymentMethod: paymentMethod,
-            initialPaidAmount: paidAmount,
+            initialPaidAmount: currentPaid,
             notes,
             dueDate: dueDate || undefined,
             // include explicit test items so invoice can display per-test prices
@@ -214,9 +228,9 @@ export const Billing: React.FC<{
                                     <div className="space-y-2">
                                         <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Payment Method</label>
                                         <div className="relative">
-                                            <select 
-                                                value={paymentMethod} 
-                                                onChange={e => setPaymentMethod(e.target.value)} 
+                                            <select
+                                                value={paymentMethod}
+                                                onChange={e => setPaymentMethod(e.target.value)}
                                                 className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 text-sm font-bold text-slate-900 focus:border-blue-500 focus:ring-0 transition-all appearance-none"
                                             >
                                                 <option value="CASH">Cash Payment</option>
@@ -230,11 +244,11 @@ export const Billing: React.FC<{
                                     </div>
                                     <div className="space-y-2">
                                         <label className="text-[11px] font-black text-slate-500 uppercase tracking-widest ml-1">Reference Notes</label>
-                                        <textarea 
-                                            value={notes} 
-                                            onChange={e => setNotes(e.target.value)} 
+                                        <textarea
+                                            value={notes}
+                                            onChange={e => setNotes(e.target.value)}
                                             placeholder="Optional billing remarks..."
-                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 text-sm font-bold text-slate-900 focus:border-blue-500 focus:ring-0 transition-all h-[52px] resize-none" 
+                                            className="w-full bg-slate-50 border-2 border-slate-100 rounded-xl py-3 px-4 text-sm font-bold text-slate-900 focus:border-blue-500 focus:ring-0 transition-all h-[52px] resize-none"
                                         />
                                     </div>
                                 </div>
@@ -257,24 +271,44 @@ export const Billing: React.FC<{
                                     {isDuePayment && (
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in slide-in-from-top-2 duration-300">
                                             <div className="space-y-2">
-                                                <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Amount Paying Now</label>
+                                                <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest">
+                                                    Amount Paying Now <span className="text-red-500">*</span>
+                                                </label>
                                                 <div className="relative">
                                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-400 font-bold">₹</span>
-                                                    <input 
-                                                        type="number" 
-                                                        value={paidAmount} 
-                                                        onChange={e => setPaidAmount(Number(e.target.value))} 
-                                                        className="w-full bg-white border-2 border-amber-200 rounded-xl py-3 pl-8 pr-4 text-sm font-black text-amber-900 focus:border-amber-500 focus:ring-0 transition-all" 
+                                                    <input
+                                                        type="number"
+                                                        value={paidAmount}
+                                                        onChange={e => {
+                                                            const val = e.target.value;
+                                                            if (val === '') {
+                                                                setPaidAmount('');
+                                                            } else {
+                                                                setPaidAmount(Number(val));
+                                                            }
+                                                        }}
+                                                        onFocus={() => {
+                                                            if (paidAmount === 0 || paidAmount === '0') {
+                                                                setPaidAmount('');
+                                                            }
+                                                        }}
+                                                        onBlur={() => {
+                                                            if (paidAmount === '') {
+                                                                setPaidAmount(0);
+                                                            }
+                                                        }}
+                                                        className="w-full bg-white border-2 border-amber-200 rounded-xl py-3 pl-8 pr-4 text-sm font-black text-amber-900 focus:border-amber-500 focus:ring-0 transition-all"
+                                                        required
                                                     />
                                                 </div>
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] font-black text-amber-600 uppercase tracking-widest">Tentative Due Date</label>
-                                                <input 
-                                                    type="date" 
-                                                    value={dueDate} 
-                                                    onChange={e => setDueDate(e.target.value)} 
-                                                    className="w-full bg-white border-2 border-amber-200 rounded-xl py-3 px-4 text-sm font-black text-amber-900 focus:border-amber-500 focus:ring-0 transition-all" 
+                                                <input
+                                                    type="date"
+                                                    value={dueDate}
+                                                    onChange={e => setDueDate(e.target.value)}
+                                                    className="w-full bg-white border-2 border-amber-200 rounded-xl py-3 px-4 text-sm font-black text-amber-900 focus:border-amber-500 focus:ring-0 transition-all"
                                                 />
                                             </div>
                                         </div>
@@ -287,7 +321,7 @@ export const Billing: React.FC<{
                                 <div className="p-8 rounded-3xl bg-slate-900 text-white shadow-xl relative overflow-hidden group">
                                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-2xl group-hover:bg-white/10 transition-colors"></div>
                                     <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em] mb-6">Final Settlement</h3>
-                                    
+
                                     <div className="space-y-4 mb-8">
                                         <div className="flex justify-between items-center text-sm">
                                             <span className="text-slate-400 font-bold">Subtotal Amount</span>
@@ -302,11 +336,11 @@ export const Billing: React.FC<{
                                         <div className="flex justify-between items-center">
                                             <span className="text-slate-400 font-bold text-sm">Discount (%)</span>
                                             <div className="w-20 relative">
-                                                <input 
-                                                    type="number" 
-                                                    value={discount} 
-                                                    onChange={e => setDiscount(Number(e.target.value))} 
-                                                    className="w-full bg-white/10 border-none rounded-lg py-1.5 px-3 text-right text-sm font-black text-white focus:ring-1 focus:ring-white/30" 
+                                                <input
+                                                    type="number"
+                                                    value={discount}
+                                                    onChange={e => setDiscount(Number(e.target.value))}
+                                                    className="w-full bg-white/10 border-none rounded-lg py-1.5 px-3 text-right text-sm font-black text-white focus:ring-1 focus:ring-white/30"
                                                 />
                                             </div>
                                         </div>
@@ -318,29 +352,29 @@ export const Billing: React.FC<{
                                         <div className="flex justify-between items-end">
                                             <span className="text-xs font-black text-slate-500 uppercase tracking-widest">Total Payable</span>
                                             <span className="text-3xl font-black tracking-tight text-white">
-                                                ₹{Math.max(0, totalAmount * (1 - discount/100) - alreadyPaid).toFixed(2)}
+                                                ₹{Math.max(0, totalAmount * (1 - discount / 100) - alreadyPaid).toFixed(2)}
                                             </span>
                                         </div>
                                         {isDuePayment && (
                                             <div className="flex justify-between items-center pt-4 mt-4 border-t border-white/5">
                                                 <span className="text-xs font-bold text-amber-400 italic">Remaining Balance</span>
                                                 <span className="text-lg font-black text-amber-500">
-                                                    ₹{(totalAmount * (1 - discount/100) - alreadyPaid - paidAmount).toFixed(2)}
+                                                    ₹{(totalAmount * (1 - discount / 100) - alreadyPaid - Number(paidAmount)).toFixed(2)}
                                                 </span>
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="mt-10 grid grid-cols-2 gap-4">
-                                        <button 
-                                            type="button" 
-                                            onClick={onClose} 
+                                        <button
+                                            type="button"
+                                            onClick={onClose}
                                             className="px-6 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-bold text-sm hover:bg-white/10 transition-all"
                                         >
                                             Discard
                                         </button>
-                                        <button 
-                                            type="submit" 
+                                        <button
+                                            type="submit"
                                             className="px-6 py-4 rounded-2xl bg-blue-600 text-white font-black text-sm shadow-lg shadow-blue-900/40 hover:bg-blue-500 hover:-translate-y-0.5 transition-all"
                                         >
                                             Finalize Bill
