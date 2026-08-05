@@ -276,29 +276,11 @@ export const Billing: React.FC<{
                                                 </label>
                                                 <div className="relative">
                                                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-400 font-bold">₹</span>
-                                                    <input
-                                                        type="number"
-                                                        value={paidAmount}
-                                                        onChange={e => {
-                                                            const val = e.target.value;
-                                                            if (val === '') {
-                                                                setPaidAmount('');
-                                                            } else {
-                                                                setPaidAmount(Number(val));
-                                                            }
-                                                        }}
-                                                        onFocus={() => {
-                                                            if (paidAmount === 0 || paidAmount === '0') {
-                                                                setPaidAmount('');
-                                                            }
-                                                        }}
-                                                        onBlur={() => {
-                                                            if (paidAmount === '') {
-                                                                setPaidAmount(0);
-                                                            }
-                                                        }}
-                                                        className="w-full bg-white border-2 border-amber-200 rounded-xl py-3 pl-8 pr-4 text-sm font-black text-amber-900 focus:border-amber-500 focus:ring-0 transition-all"
-                                                        required
+                                                    <input 
+                                                        type="number" 
+                                                        value={paidAmount === 0 ? '' : paidAmount} 
+                                                        onChange={e => setPaidAmount(Number(e.target.value))} 
+                                                        className="w-full bg-white border-2 border-amber-200 rounded-xl py-3 pl-8 pr-4 text-sm font-black text-amber-900 focus:border-amber-500 focus:ring-0 transition-all" 
                                                     />
                                                 </div>
                                             </div>
