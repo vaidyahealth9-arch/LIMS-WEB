@@ -395,9 +395,18 @@ const TestEntry: React.FC = () => {
         }
     };
 
-    const handlePrint = () => {
+    const handlePrint = async () => {
         if (selectedRequest) {
-            navigate('/view-observations', { state: { serviceRequest: selectedRequest } });
+            setIsSaving(true);
+            try {
+                await saveObservations();
+                navigate('/view-observations', { state: { serviceRequest: selectedRequest } });
+            } catch (error: any) {
+                console.error("Failed to save observations:", error);
+                alert(`Error: ${error.message}`);
+            } finally {
+                setIsSaving(false);
+            }
         }
     };
 

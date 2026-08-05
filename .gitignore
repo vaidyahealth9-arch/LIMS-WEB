@@ -23,3 +23,10 @@ docs/
 *.njsproj
 *.sln
 *.sw?
+
+# Security ignore
+.env
+.env.*
+firebase-key.json
+*.key.json
+service-account*.json

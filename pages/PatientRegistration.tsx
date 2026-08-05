@@ -255,12 +255,17 @@ const PatientRegistration: React.FC = () => {
             return;
         }
 
+        // Skip search if the query exactly matches the currently selected patient's display format
+        if (selectedPatient && searchQuery === `${selectedPatient.firstName} ${selectedPatient.lastName} (${selectedPatient.localMrnValue})`) {
+            return;
+        }
+
         const timeoutId = window.setTimeout(() => {
             void performSearch(searchQuery, searchFilter, 1);
         }, 300);
 
         return () => window.clearTimeout(timeoutId);
-    }, [searchFilter, searchQuery]);
+    }, [searchFilter, searchQuery, selectedPatient]);
 
     // Handle keyboard navigation
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

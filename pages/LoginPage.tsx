@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../services/AuthContext';
 import { useNotifications } from '../services/NotificationContext';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { TermsModal } from '../components/TermsModal';
+import { PrivacyModal } from '../components/PrivacyModal';
 
 export function LoginPage() {
   const [username, setUsername] = useState('');
@@ -11,6 +13,9 @@ export function LoginPage() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [agreed, setAgreed] = useState(false);
+  const [showTerms, setShowTerms] = useState(false);
+  const [showPrivacy, setShowPrivacy] = useState(false);
   const navigate = useNavigate();
   const { login } = useAuth();
   const { addNotification } = useNotifications();
@@ -237,40 +242,74 @@ export function LoginPage() {
             </div>
           </div>
 
+          {/* Agreement Checkbox */}
+          <div className="my-5 p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+            <p className="text-[11px] text-slate-600 leading-relaxed font-medium text-left">
+              By checking this box, you confirm that you have read, understood, and agree to the{" "}
+              <button
+                type="button"
+                onClick={() => setShowTerms(true)}
+                className="text-cyan-700 hover:text-cyan-800 font-bold underline focus:outline-none"
+              >
+                Terms & Conditions
+              </button>{" "}
+              and{" "}
+              <button
+                type="button"
+                onClick={() => setShowPrivacy(true)}
+                className="text-teal-700 hover:text-teal-800 font-bold underline focus:outline-none"
+              >
+                Privacy Policy
+              </button>{" "}
+              of Vaidya LIMS.
+            </p>
+            <label className="flex items-start gap-2.5 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={agreed}
+                onChange={(e) => setAgreed(e.target.checked)}
+                className="mt-0.5 w-4 h-4 text-cyan-600 border-slate-300 rounded focus:ring-cyan-500"
+              />
+              <span className="text-[11px] font-semibold text-slate-700 text-left">
+                I agree to the Terms & Conditions and Privacy Policy
+              </span>
+            </label>
+          </div>
+
           {/* Submit Button */}
           <button 
             type="submit"
-            disabled={isLoading}
+            disabled={isLoading || !agreed}
             style={{ 
               width: '100%', 
               padding: isMobile ? '0.75rem' : '0.875rem',
-              background: isLoading 
-                ? 'linear-gradient(135deg, #64748b 0%, #475569 100%)' 
+              background: (isLoading || !agreed)
+                ? 'linear-gradient(135deg, #cbd5e1 0%, #94a3b8 100%)' 
                 : 'linear-gradient(135deg, #0891b2 0%, #0e7490 100%)',
               color: 'white',
               border: 'none',
               borderRadius: '8px',
               fontSize: isMobile ? '15px' : '16px',
               fontWeight: 600,
-              cursor: isLoading ? 'not-allowed' : 'pointer',
+              cursor: (isLoading || !agreed) ? 'not-allowed' : 'pointer',
               transition: 'all 0.3s ease',
               marginTop: '0.5rem',
-              boxShadow: '0 4px 12px rgba(8, 145, 178, 0.3)',
+              boxShadow: (isLoading || !agreed) ? 'none' : '0 4px 12px rgba(8, 145, 178, 0.3)',
               letterSpacing: '0.5px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '0.5rem',
-              opacity: isLoading ? 0.8 : 1
+              opacity: (isLoading || !agreed) ? 0.7 : 1
             }}
             onMouseEnter={(e) => {
-              if (!isLoading) {
+              if (!isLoading && agreed) {
                 e.currentTarget.style.transform = 'translateY(-2px)';
                 e.currentTarget.style.boxShadow = '0 6px 20px rgba(8, 145, 178, 0.4)';
               }
             }}
             onMouseLeave={(e) => {
-              if (!isLoading) {
+              if (!isLoading && agreed) {
                 e.currentTarget.style.transform = 'translateY(0)';
                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(8, 145, 178, 0.3)';
               }
@@ -300,7 +339,7 @@ export function LoginPage() {
               'Sign In'
             )}
           </button>
-
+ 
           {/* Footer Text */}
           <div style={{ 
             marginTop: '1.5rem', 
@@ -312,6 +351,9 @@ export function LoginPage() {
           </div>
         </form>
       </div>
+
+      {showTerms && <TermsModal onClose={() => setShowTerms(false)} />}
+      {showPrivacy && <PrivacyModal onClose={() => setShowPrivacy(false)} />}
     </div>
   );
 }
