@@ -34,6 +34,7 @@ interface Subscription {
 
 interface SubscriptionSummary {
     isOnTrial: boolean;
+    hasUsedTrial?: boolean;
     hasActiveSubscription: boolean;
     currentPlanName: string;
     monthlyAmount: number;
