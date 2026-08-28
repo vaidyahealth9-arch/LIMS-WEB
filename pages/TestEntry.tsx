@@ -84,6 +84,8 @@ const TestEntry: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
+    const [sortBy, setSortBy] = useState('date');
+    const [sortDir, setSortDir] = useState('DESC');
     const pageSize = 10;
 
     const roles = useMemo(() => {
@@ -105,7 +107,7 @@ const TestEntry: React.FC = () => {
         });
     }, [roles]);
 
-    const fetchServiceRequests = async (query: string, startDate: string, endDate: string, page: number) => {
+    const fetchServiceRequests = async (query: string, startDate: string, endDate: string, page: number, sortByValue = sortBy, sortDirValue = sortDir) => {
         setIsLoading(true);
         try {
             const orgId = localStorage.getItem('organizationId');
@@ -114,7 +116,7 @@ const TestEntry: React.FC = () => {
             }
             const includeClosed = requestView !== 'open';
             // Assuming testIds filter is not needed for now, passing empty array
-            const response = await searchServiceRequests(orgId, startDate, endDate, query, [], page - 1, pageSize, includeClosed);
+            const response = await searchServiceRequests(orgId, startDate, endDate, query, [], page - 1, pageSize, includeClosed, sortByValue, sortDirValue);
 
             const filteredRequests = (response.content || []).filter((req) => {
                 const closed = isClosedServiceRequestStatus(req.status);
@@ -139,10 +141,10 @@ const TestEntry: React.FC = () => {
 
     useEffect(() => {
         const timer = setTimeout(() => {
-            fetchServiceRequests(searchQuery, startDate, endDate, 1);
+            fetchServiceRequests(searchQuery, startDate, endDate, 1, sortBy, sortDir);
         }, 300); // 300ms debounce
         return () => clearTimeout(timer);
-    }, [searchQuery, startDate, endDate, requestView]);
+    }, [searchQuery, startDate, endDate, requestView, sortBy, sortDir]);
 
     const handlePreviousPage = () => {
         if (currentPage > 1) {
@@ -501,6 +503,26 @@ const TestEntry: React.FC = () => {
                             <button onClick={() => handleDatePreset('7d')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">7 days</button>
                             <button onClick={() => handleDatePreset('1m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">1 month</button>
                             <button onClick={() => handleDatePreset('3m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">3 months</button>
+                        </div>
+
+                        {/* Sort By */}
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-gray-500 font-semibold whitespace-nowrap">Sort:</span>
+                            <select
+                                value={`${sortBy}:${sortDir}`}
+                                onChange={(e) => {
+                                    const [by, dir] = e.target.value.split(':');
+                                    setSortBy(by);
+                                    setSortDir(dir);
+                                }}
+                                className="px-2.5 py-1.5 text-xs border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 font-semibold text-gray-600 bg-white cursor-pointer transition-all"
+                            >
+                                <option value="date:DESC">Latest First</option>
+                                <option value="date:ASC">Oldest First</option>
+                                <option value="name:ASC">Name A-Z</option>
+                                <option value="name:DESC">Name Z-A</option>
+                                <option value="status:ASC">Status</option>
+                            </select>
                         </div>
 
                         <div className="flex items-center bg-gradient-to-r from-cyan-50 to-teal-50 px-3 py-2 rounded-lg border border-cyan-200 whitespace-nowrap">

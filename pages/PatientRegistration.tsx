@@ -80,6 +80,7 @@ const PatientRegistration: React.FC = () => {
     const [selectedResultIndex, setSelectedResultIndex] = useState(-1);
     const [searchError, setSearchError] = useState<string | null>(null);
     const [phrMobile, setPhrMobile] = useState('');
+    const [phrAccessCode, setPhrAccessCode] = useState('');
     const [isPhrFetching, setIsPhrFetching] = useState(false);
     
     const [currentPage, setCurrentPage] = useState(1);
@@ -105,11 +106,13 @@ const PatientRegistration: React.FC = () => {
 
     const handleFetchFromPhr = async () => {
         const normalizedMobile = phrMobile.replace(/\D/g, '');
-        if (normalizedMobile.length !== 10) {
+        const accessCode = phrAccessCode.trim();
+
+        if (!accessCode || normalizedMobile.length !== 10) {
             addNotification({
                 type: 'error',
-                title: 'Invalid Mobile Number',
-                message: 'Enter a valid 10-digit mobile number to fetch PHR data.',
+                title: 'Missing Required Fields',
+                message: 'Please enter both a valid 10-digit mobile number and the 6-digit PHR Access Code to fetch data.',
                 persist: false,
             });
             return;
@@ -117,8 +120,8 @@ const PatientRegistration: React.FC = () => {
 
         try {
             setIsPhrFetching(true);
-            const lookupRelationship = isDependent ? relationship : 'self';
-            const phrData: any = await fetchPhrUser(normalizedMobile, lookupRelationship);
+            const phrData = await fetchPhrUser(normalizedMobile, undefined, accessCode);
+
 
             setFirstName(phrData?.firstName || phrData?.givenName || '');
             setLastName(phrData?.lastName || phrData?.familyName || '');
@@ -127,7 +130,7 @@ const PatientRegistration: React.FC = () => {
                 setGender(normalizedGender);
             }
             setDateOfBirth(phrData?.dateOfBirth ? String(phrData.dateOfBirth).split('T')[0] : '');
-            setPhone(phrData?.contactPhone || normalizedMobile);
+            setPhone(phrData?.contactPhone || normalizedMobile || '');
             setEmail(phrData?.contactEmail || '');
             setAddress(phrData?.addressLine1 || '');
             setCity(phrData?.city || '');
@@ -711,7 +714,81 @@ const PatientRegistration: React.FC = () => {
                 )}
             </div>
 
-            <div className="border-t-2 border-gray-100 my-6"></div>
+            {/* Fetch from PHR Section */}
+            <div className="bg-gradient-to-r from-cyan-50 to-teal-50 p-6 rounded-xl shadow-md border border-cyan-200 mt-6">
+                <div className="mb-4 flex items-center gap-2">
+                    <svg className="w-5 h-5 text-cyan-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                    </svg>
+                    <h3 className="text-lg font-bold text-cyan-950">Fetch Patient Profile from PHR</h3>
+                    <span className="text-[10px] bg-cyan-200 text-cyan-800 font-bold px-2 py-0.5 rounded-full uppercase">Consent Required</span>
+                </div>
+                <p className="text-xs text-cyan-800 mb-4">
+                    Enter the patient's registered mobile number and the time-bound 6-digit access code generated in their PHR app to securely fetch and autofill registration details.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label htmlFor="phrMobile" className="block text-xs font-semibold text-gray-700 mb-2">
+                            PHR Registered Mobile Number <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="tel"
+                            id="phrMobile"
+                            value={phrMobile}
+                            onChange={e => {
+                                const value = e.target.value.replace(/\D/g, '');
+                                if (value.length <= 10) {
+                                    setPhrMobile(value);
+                                }
+                            }}
+                            placeholder="Enter 10-digit mobile number"
+                            maxLength={10}
+                            className="w-full px-4 py-2 border-2 border-cyan-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 bg-white"
+                        />
+                    </div>
+                    <div>
+                        <label htmlFor="phrAccessCode" className="block text-xs font-semibold text-gray-700 mb-2">
+                            PHR Access Code <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="text"
+                            id="phrAccessCode"
+                            value={phrAccessCode}
+                            onChange={e => setPhrAccessCode(e.target.value.toUpperCase())}
+                            placeholder="Enter 6-digit access code (e.g. XY92B7)"
+                            maxLength={6}
+                            className="w-full px-4 py-2 border-2 border-cyan-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 font-mono uppercase bg-white"
+                        />
+                    </div>
+                    <div>
+                        <button
+                            type="button"
+                            onClick={handleFetchFromPhr}
+                            disabled={isPhrFetching || phrMobile.length !== 10 || phrAccessCode.length !== 6}
+                            className="w-full px-4 py-2.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-700 hover:to-teal-700 text-white font-bold rounded-lg shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                        >
+                            {isPhrFetching ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                    <span>Fetching Details...</span>
+                                </>
+                            ) : (
+                                <span>Fetch from PHR</span>
+                            )}
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            {/* OR Separator */}
+            <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                    <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm font-semibold uppercase">
+                    <span className="bg-gray-50 px-4 text-gray-500 tracking-wider">OR (Register Manually)</span>
+                </div>
+            </div>
 
             <form onSubmit={(e) => handleSubmit(e)}>
                 {/* Form Header */}
@@ -872,46 +949,33 @@ const PatientRegistration: React.FC = () => {
                         </p>
                     </div>
 
-                    {/* Phone Number with Inline PHR Fetch */}
+                    {/* Phone Number */}
                     <div>
                         <label htmlFor="phone" className="block text-sm font-semibold text-gray-700 mb-2">
                             Phone Number <span className="text-red-500">*</span>
                         </label>
-                        <div className="flex gap-2">
-                            <input 
-                                type="tel" 
-                                id="phone" 
-                                required 
-                                value={phone} 
-                                onChange={e => {
-                                    const value = e.target.value.replace(/\D/g, '');
-                                    if (value.length <= 10) {
-                                        setPhone(value);
-                                        setPhrMobile(value); // Keep sync for fetch logic if needed
-                                    }
-                                }}
-                                placeholder="10-digit mobile number"
-                                maxLength={10}
-                                pattern="[0-9]{10}"
-                                className="flex-1 px-4 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all hover:border-gray-300" 
-                            />
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setPhrMobile(phone);
-                                    handleFetchFromPhr();
-                                }}
-                                disabled={isPhrFetching || phone.length !== 10}
-                                className="px-4 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-md hover:from-cyan-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                            >
-                                {isPhrFetching ? 'Fetching...' : 'Fetch from PHR'}
-                            </button>
-                        </div>
+                        <input 
+                            type="tel" 
+                            id="phone" 
+                            required 
+                            value={phone} 
+                            onChange={e => {
+                                const value = e.target.value.replace(/\D/g, '');
+                                if (value.length <= 10) {
+                                    setPhone(value);
+                                    setPhrMobile(value); // Keep sync for fetch logic if needed
+                                }
+                            }}
+                            placeholder="10-digit mobile number"
+                            maxLength={10}
+                            pattern="[0-9]{10}"
+                            className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all hover:border-gray-300" 
+                        />
                         {phone && phone.length < 10 && (
                             <p className="text-xs text-red-500 mt-1">Phone number must be exactly 10 digits</p>
                         )}
-                        <p className="text-xs text-gray-500 mt-1">Use a valid 10-digit mobile number to auto-fill details from PHR.</p>
                     </div>
+
 
                     {/* Email */}
                     <div>

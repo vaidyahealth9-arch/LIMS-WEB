@@ -155,6 +155,7 @@ export interface OrganizationTest {
     createdAt: string;
     updatedAt: string;
     specimenTypeId?: number;
+    specimenTypeName?: string;
     defaultNumberOfSpecimens?: number;
 }
 

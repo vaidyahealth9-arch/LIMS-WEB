@@ -12,179 +12,14 @@ import {
     bulkUpdateOrganizationTestPrices,
     updateOrganizationReportBranding,
     uploadFile,
+    getAllSpecimenTypes,
 } from '../services/api';
-import type { OrganizationTest, Analyte, MasterTest, User } from '../types';
+import type { OrganizationTest, Analyte, MasterTest, User, SpecimenType } from '../types';
 import { useNotifications } from '../services/NotificationContext';
 import { useAuth } from '../services/AuthContext';
 import TestFormModal from '../components/TestFormModal';
 import AnalyteFormModal from '../components/AnalyteFormModal';
 
-interface AssignAnalytesModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    test: OrganizationTest;
-    allAnalytes: Analyte[];
-    onSave: (testId: number, analyteIds: number[]) => void;
-}
-
-const AssignAnalytesModal: React.FC<AssignAnalytesModalProps> = ({ isOpen, onClose, test, allAnalytes, onSave }) => {
-    const [selectedAnalyteIds, setSelectedAnalyteIds] = useState<Set<number>>(new Set());
-    const [searchTerm, setSearchTerm] = useState('');
-
-    useEffect(() => {
-        const preselectedFromTest = Array.isArray(test?.analyteIds) ? test.analyteIds : [];
-
-        const preselectedFromMappings = allAnalytes
-            .filter((analyte) => {
-                if (analyte.testId != null) {
-                    return analyte.testId === test.testId;
-                }
-                return analyte.associatedTest === test.testName;
-            })
-            .map((analyte) => analyte.id);
-
-        const preselected = preselectedFromTest.length > 0
-            ? preselectedFromTest
-            : preselectedFromMappings;
-
-        setSelectedAnalyteIds(new Set(preselected));
-        setSearchTerm('');
-    }, [test, isOpen, allAnalytes]);
-
-    const analytesForTest = allAnalytes.filter((analyte) => {
-        if (analyte.testId != null) {
-            return analyte.testId === test.testId;
-        }
-        return analyte.associatedTest === test.testName;
-    });
-
-    const hasAnyTestScopedMetadata = allAnalytes.some(
-        (analyte) => analyte.testId != null || Boolean(analyte.associatedTest && analyte.associatedTest.trim())
-    );
-    const showMetadataFallbackNotice = analytesForTest.length === 0 && !hasAnyTestScopedMetadata;
-    const showNoAnalytesConfiguredNotice = analytesForTest.length === 0 && hasAnyTestScopedMetadata;
-
-    const analytePool = analytesForTest.length > 0 ? analytesForTest : allAnalytes;
-
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-    const filteredAnalytes = analytePool
-        .filter((analyte) => {
-            if (!normalizedSearch) {
-                return true;
-            }
-
-            const searchTarget = `${analyte.name} ${analyte.code} ${analyte.bioReference}`.toLowerCase();
-            return searchTarget.includes(normalizedSearch);
-        })
-        .sort((a, b) => {
-            const aSelected = selectedAnalyteIds.has(a.id) ? 1 : 0;
-            const bSelected = selectedAnalyteIds.has(b.id) ? 1 : 0;
-            if (aSelected !== bSelected) {
-                return bSelected - aSelected;
-            }
-            return a.name.localeCompare(b.name);
-        });
-
-    const handleCheckboxChange = (analyteId: number) => {
-        setSelectedAnalyteIds(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(analyteId)) {
-                newSet.delete(analyteId);
-            } else {
-                newSet.add(analyteId);
-            }
-            return newSet;
-        });
-    };
-
-    const handleSave = () => {
-        const allowedAnalyteIds = new Set(analytePool.map((analyte) => analyte.id));
-        const sanitizedSelectedAnalyteIds = Array.from(selectedAnalyteIds).filter((analyteId) => allowedAnalyteIds.has(analyteId));
-        onSave(test.testId, sanitizedSelectedAnalyteIds);
-    };
-
-    const handleSelectAllVisible = () => {
-        setSelectedAnalyteIds(prev => {
-            const next = new Set(prev);
-            filteredAnalytes.forEach((analyte) => next.add(analyte.id));
-            return next;
-        });
-    };
-
-    const handleClearVisible = () => {
-        setSelectedAnalyteIds(prev => {
-            const next = new Set(prev);
-            filteredAnalytes.forEach((analyte) => next.delete(analyte.id));
-            return next;
-        });
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
-            <div className="bg-white p-8 rounded-xl shadow-lg max-w-3xl w-full">
-                <h3 className="text-xl font-bold mb-4">Manage Analytes for {test.testName}</h3>
-                <div className="mb-4 grid grid-cols-1 md:grid-cols-2 gap-3 items-end">
-                    <div>
-                        <label htmlFor="analyte-search" className="block text-xs font-semibold text-gray-600 mb-1">Search analyte</label>
-                        <input
-                            id="analyte-search"
-                            type="text"
-                            placeholder="Search by name, code, or reference"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-md"
-                        />
-                    </div>
-                    <div className="flex md:justify-end gap-2">
-                        <button onClick={handleSelectAllVisible} className="px-3 py-2 text-sm rounded-md bg-cyan-50 text-cyan-700 hover:bg-cyan-100">
-                            Select visible
-                        </button>
-                        <button onClick={handleClearVisible} className="px-3 py-2 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200">
-                            Clear visible
-                        </button>
-                    </div>
-                </div>
-                <div className="mb-3 flex flex-wrap gap-2 text-xs">
-                    <span className="px-2.5 py-1 rounded-full bg-cyan-100 text-cyan-800 font-semibold">Already selected: {selectedAnalyteIds.size}</span>
-                    <span className="px-2.5 py-1 rounded-full bg-gray-100 text-gray-700">Showing: {filteredAnalytes.length} / {analytePool.length}</span>
-                </div>
-                {showMetadataFallbackNotice && (
-                    <div className="mb-3 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                        Test-specific analyte mapping metadata is unavailable for this test, so all analytes are shown.
-                    </div>
-                )}
-                {showNoAnalytesConfiguredNotice && (
-                    <div className="mb-3 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2">
-                        No analytes are currently defined for this test yet. Showing all analytes so you can assign them.
-                    </div>
-                )}
-                <div className="max-h-96 overflow-y-auto">
-                    {filteredAnalytes.map(analyte => (
-                        <div key={analyte.id} className="flex items-center justify-between p-2 border-b">
-                            <label htmlFor={`analyte-${analyte.id}`}>{analyte.name} ({analyte.code})</label>
-                            <input
-                                type="checkbox"
-                                id={`analyte-${analyte.id}`}
-                                checked={selectedAnalyteIds.has(analyte.id)}
-                                onChange={() => handleCheckboxChange(analyte.id)}
-                                className="h-4 w-4 rounded border-gray-300 text-cyan-600 focus:ring-cyan-500"
-                            />
-                        </div>
-                    ))}
-                    {filteredAnalytes.length === 0 && (
-                        <div className="p-3 text-sm text-gray-500">No analytes match your search.</div>
-                    )}
-                </div>
-                <div className="mt-6 flex justify-end gap-4">
-                    <button onClick={onClose} className="px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300">Cancel</button>
-                    <button onClick={handleSave} className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-teal-600 text-white font-semibold rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-cyan-500">Save Analytes</button>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 type BannerKind = 'header' | 'footer';
 
@@ -256,6 +91,7 @@ const LabManagement: React.FC = () => {
     const { user } = useAuth();
     const [orgTests, setOrgTests] = useState<OrganizationTest[]>([]);
     const [masterTests, setMasterTests] = useState<MasterTest[]>([]);
+    const [specimenTypes, setSpecimenTypes] = useState<SpecimenType[]>([]);
     const [analytes, setAnalytes] = useState<Analyte[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [organizationId, setOrganizationId] = useState<string | null>(null);
@@ -284,12 +120,12 @@ const LabManagement: React.FC = () => {
     } | null>(null);
 
     const [isTestModalOpen, setIsTestModalOpen] = useState(false);
+    const [sortBy, setSortBy] = useState('name');
+    const [sortDir, setSortDir] = useState('ASC');
     const [isAnalyteModalOpen, setIsAnalyteModalOpen] = useState(false);
-    const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
 
     const [editingTest, setEditingTest] = useState<OrganizationTest | null>(null);
     const [editingAnalyte, setEditingAnalyte] = useState<Analyte | null>(null);
-    const [assigningTest, setAssigningTest] = useState<OrganizationTest | null>(null);
 
     const isAdminUser = useMemo(() => {
         const normalizedRole = (role: string) => role.toUpperCase().replace(/^ROLE_/, '');
@@ -313,6 +149,28 @@ const LabManagement: React.FC = () => {
         return sessionRoles.some((role) => normalizedRole(role) === 'ADMIN');
     }, [user]);
 
+    const sortedOrgTests = useMemo(() => {
+        const tests = [...orgTests];
+        tests.sort((a, b) => {
+            let valA: any = a.testName || '';
+            let valB: any = b.testName || '';
+            if (sortBy === 'price') {
+                valA = Number(a.price || 0);
+                valB = Number(b.price || 0);
+            } else if (sortBy === 'analytes') {
+                valA = Array.isArray(a.analyteIds) ? a.analyteIds.length : 0;
+                valB = Array.isArray(b.analyteIds) ? b.analyteIds.length : 0;
+            }
+
+            if (typeof valA === 'string') {
+                return sortDir === 'ASC' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            } else {
+                return sortDir === 'ASC' ? valA - valB : valB - valA;
+            }
+        });
+        return tests;
+    }, [orgTests, sortBy, sortDir]);
+
     const hasDoctorRole = (roles: string[] = []) => {
         return roles.some((role) => {
             const normalized = String(role || '').toUpperCase().replace(/^ROLE_/, '');
@@ -334,12 +192,14 @@ const LabManagement: React.FC = () => {
         if (!organizationId) return;
         try {
             setIsLoading(true);
-            const [testsData, analytesData] = await Promise.all([
+            const [testsData, analytesData, specimenTypesData] = await Promise.all([
                 getAllOrganizationTestsForLab(organizationId),
                 getAnalytesForOrganization(organizationId),
+                getAllSpecimenTypes(),
             ]);
             setOrgTests(testsData);
             setAnalytes(analytesData);
+            setSpecimenTypes(specimenTypesData);
         } catch (error) {
             const message = error instanceof Error ? error.message : 'An unknown error occurred';
             addNotification({ type: 'error', title: 'Failed to Fetch Data', message, persist: true });
@@ -748,16 +608,14 @@ const LabManagement: React.FC = () => {
         setIsAnalyteModalOpen(true);
     };
 
-    const openAssignAnalyteModal = (test: OrganizationTest) => {
-        setAssigningTest(test);
-        setIsAssignModalOpen(true);
-    };
-
     // Save Handlers
-    const handleSaveTest = async (testData: any) => {
+    const handleSaveTest = async (testData: any, analyteIds?: number[]) => {
         if (!organizationId) return;
         try {
             await createOrUpdateOrganizationTest(organizationId, testData);
+            if (analyteIds) {
+                await setAnalytesForOrganizationTest(organizationId, testData.testId.toString(), analyteIds.map(String));
+            }
             addNotification({ type: 'success', title: 'Test Saved', message: `Test ${testData.testId} has been saved.` });
             setIsTestModalOpen(false);
             fetchData();
@@ -779,22 +637,6 @@ const LabManagement: React.FC = () => {
         } catch (error) {
             const message = error instanceof Error ? error.message : 'An unknown error occurred';
             addNotification({ type: 'error', title: 'Failed to Save Analyte', message, persist: true });
-        }
-    };
-
-    const handleSaveAnalytesForTest = async (testId: number, analyteIds: number[]) => {
-        if (!organizationId) return;
-        try {
-            await setAnalytesForOrganizationTest(organizationId, testId.toString(), analyteIds.map(String));
-            setOrgTests(prev => prev.map(test =>
-                test.testId === testId ? { ...test, analyteIds } : test
-            ));
-            setAssigningTest(prev => prev && prev.testId === testId ? { ...prev, analyteIds } : prev);
-            addNotification({ type: 'success', title: 'Analytes Assigned', message: 'Analytes have been assigned to the test.' });
-            setIsAssignModalOpen(false);
-        } catch (error) {
-            const message = error instanceof Error ? error.message : 'An unknown error occurred';
-            addNotification({ type: 'error', title: 'Failed to Assign Analytes', message, persist: true });
         }
     };
 
@@ -1296,7 +1138,27 @@ const LabManagement: React.FC = () => {
             <div className="bg-white p-8 rounded-xl shadow-lg">
                 <div className="flex justify-between items-center mb-6">
                     <h2 className="text-2xl font-bold text-gray-800">Available Organization Tests</h2>
-                    <button onClick={handleAddTest} className={buttonClass}>Add New Test</button>
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-1.5">
+                            <span className="text-xs text-gray-500 font-semibold whitespace-nowrap">Sort:</span>
+                            <select
+                                value={`${sortBy}:${sortDir}`}
+                                onChange={(e) => {
+                                    const [by, dir] = e.target.value.split(':');
+                                    setSortBy(by);
+                                    setSortDir(dir);
+                                }}
+                                className="px-2.5 py-1.5 text-xs border border-gray-300 rounded-lg shadow-sm font-semibold text-gray-600 bg-white cursor-pointer transition-all"
+                            >
+                                <option value="name:ASC">Name A-Z</option>
+                                <option value="name:DESC">Name Z-A</option>
+                                <option value="price:DESC">Price (High to Low)</option>
+                                <option value="price:ASC">Price (Low to High)</option>
+                                <option value="analytes:DESC">Analytes Count</option>
+                            </select>
+                        </div>
+                        <button onClick={handleAddTest} className={buttonClass}>Add New Test</button>
+                    </div>
                 </div>
                 <div className="mb-4 flex flex-col md:flex-row md:items-center gap-3">
                     <div className="text-sm text-gray-600">
@@ -1334,13 +1196,14 @@ const LabManagement: React.FC = () => {
                                 <th className={thClass}>Name</th>
                                 <th className={thClass}>Local Code</th>
                                 <th className={thClass}>Price</th>
+                                <th className={thClass}>Specimen Type</th>
                                 <th className={thClass}>Status</th>
                                 <th className={thClass}>Analytes</th>
                                 <th className={thClass}>Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                            {orgTests.map(test => (
+                            {sortedOrgTests.map(test => (
                                 <tr key={test.testId}>
                                     <td className={tdClass}>
                                         <input
@@ -1353,11 +1216,11 @@ const LabManagement: React.FC = () => {
                                     <td className={`font-medium text-gray-900 ${tdClass}`}>{test.testName}</td>
                                     <td className={tdClass}>{test.testLocalCode}</td>
                                     <td className={tdClass}>{test.price !== null ? `₹${test.price.toFixed(2)}` : '—'}</td>
+                                    <td className={tdClass}>{test.specimenTypeName || 'None'}</td>
                                     <td className={tdClass}>{test.isEnabled ? 'Enabled' : 'Disabled'}</td>
                                     <td className={tdClass}>{test.analyteIds?.length ?? 0}</td>
                                     <td className={`${tdClass} space-x-2`}>
-                                        <button onClick={() => handleEditTest(test)} className="text-indigo-600 hover:text-indigo-900 font-semibold">Edit</button>
-                                        <button onClick={() => openAssignAnalyteModal(test)} className="text-cyan-600 hover:text-cyan-800 font-semibold">Manage Analytes</button>
+                                        <button onClick={() => handleEditTest(test)} className="text-indigo-600 hover:text-indigo-900 font-semibold">Edit / Manage</button>
                                     </td>
                                 </tr>
                             ))}
@@ -1405,6 +1268,8 @@ const LabManagement: React.FC = () => {
                 onSave={handleSaveTest}
                 test={editingTest}
                 availableTests={masterTests}
+                specimenTypes={specimenTypes}
+                allAnalytes={analytes}
             />
             <AnalyteFormModal
                 isOpen={isAnalyteModalOpen}
@@ -1418,15 +1283,6 @@ const LabManagement: React.FC = () => {
                             .sort((a, b) => a.name.localeCompare(b.name))
                 }
             />
-            {assigningTest && (
-                <AssignAnalytesModal
-                    isOpen={isAssignModalOpen}
-                    onClose={() => setIsAssignModalOpen(false)}
-                    test={assigningTest}
-                    allAnalytes={analytes}
-                    onSave={handleSaveAnalytesForTest}
-                />
-            )}
         </div>
     );
 };

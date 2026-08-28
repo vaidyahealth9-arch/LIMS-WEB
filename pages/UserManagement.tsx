@@ -69,6 +69,8 @@ const UserManagement: React.FC = () => {
     const [filterRole, setFilterRole] = useState<string>('all');
     const [filterStatus, setFilterStatus] = useState<string>('all');
     const [filterOrganization, setFilterOrganization] = useState<string>('all');
+    const [sortBy, setSortBy] = useState('name');
+    const [sortDir, setSortDir] = useState('ASC');
 
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -137,7 +139,7 @@ const UserManagement: React.FC = () => {
     };
 
     const filteredUsers = useMemo(() => {
-        return users.filter((user) => {
+        const result = users.filter((user) => {
             const fullName = `${user.practitionerFirstName || ''} ${user.practitionerLastName || ''}`.trim();
             const primaryRole = user.roles?.[0] || '';
 
@@ -154,7 +156,27 @@ const UserManagement: React.FC = () => {
 
             return matchesSearch && matchesRole && matchesStatus && matchesOrganization;
         });
-    }, [users, searchTerm, filterRole, filterStatus, filterOrganization]);
+
+        result.sort((a, b) => {
+            let valA: any = `${a.practitionerFirstName || ''} ${a.practitionerLastName || ''}`.trim() || a.username;
+            let valB: any = `${b.practitionerFirstName || ''} ${b.practitionerLastName || ''}`.trim() || b.username;
+            if (sortBy === 'role') {
+                valA = a.roles?.[0] || '';
+                valB = b.roles?.[0] || '';
+            } else if (sortBy === 'status') {
+                valA = a.isActive ? 1 : 0;
+                valB = b.isActive ? 1 : 0;
+            }
+
+            if (typeof valA === 'string') {
+                return sortDir === 'ASC' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+            } else {
+                return sortDir === 'ASC' ? valA - valB : valB - valA;
+            }
+        });
+
+        return result;
+    }, [users, searchTerm, filterRole, filterStatus, filterOrganization, sortBy, sortDir]);
 
     const onChangeForm = (field: keyof FormState, value: string | boolean) => {
         setForm((prev) => ({ ...prev, [field]: value }));
@@ -370,7 +392,7 @@ const UserManagement: React.FC = () => {
             </div>
 
             <div className="bg-white rounded-xl shadow-md p-6 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <input
                         type="text"
                         placeholder="Search by name or username..."
@@ -398,6 +420,23 @@ const UserManagement: React.FC = () => {
                         <option value="all">All Status</option>
                         <option value="Active">Active</option>
                         <option value="Inactive">Inactive</option>
+                    </select>
+
+                    <select
+                        value={`${sortBy}:${sortDir}`}
+                        onChange={(e) => {
+                            const [by, dir] = e.target.value.split(':');
+                            setSortBy(by);
+                            setSortDir(dir);
+                        }}
+                        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-cyan-500 focus:border-transparent font-medium text-gray-700 bg-white"
+                    >
+                        <option value="name:ASC">Name A-Z</option>
+                        <option value="name:DESC">Name Z-A</option>
+                        <option value="role:ASC">Role A-Z</option>
+                        <option value="role:DESC">Role Z-A</option>
+                        <option value="status:DESC">Active First</option>
+                        <option value="status:ASC">Inactive First</option>
                     </select>
                 </div>
             </div>
@@ -440,10 +479,11 @@ const UserManagement: React.FC = () => {
                                             <td className="px-6 py-4 whitespace-nowrap"><RoleBadge role={uiRole} /></td>
                                             <td className="px-6 py-4 whitespace-nowrap text-gray-600">{user.username}</td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                <label className="relative inline-flex items-center cursor-pointer">
+                                                <label className={`relative inline-flex items-center ${user.roles?.[0] === 'ADMIN' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
                                                     <input
                                                         type="checkbox"
                                                         checked={user.isActive}
+                                                        disabled={user.roles?.[0] === 'ADMIN'}
                                                         onChange={(e) => handleToggleActive(user.id, e.target.checked)}
                                                         className="sr-only peer"
                                                     />
@@ -460,7 +500,8 @@ const UserManagement: React.FC = () => {
                                                     </button>
                                                     <button
                                                         onClick={() => openDeleteConfirmModal(user)}
-                                                        className="px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-all duration-200 shadow-md hover:shadow-lg"
+                                                        disabled={user.roles?.[0] === 'ADMIN'}
+                                                        className={`px-4 py-2 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-all duration-200 shadow-md hover:shadow-lg ${user.roles?.[0] === 'ADMIN' ? 'opacity-40 cursor-not-allowed' : ''}`}
                                                     >
                                                         Delete
                                                     </button>
@@ -479,6 +520,11 @@ const UserManagement: React.FC = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50 p-4">
                     <div className="bg-white p-8 rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
                         <h3 className="text-2xl font-bold text-gray-800 mb-6">{isEditMode ? 'Edit User' : 'Add User'}</h3>
+                        {isEditMode && selectedUser?.roles?.[0] === 'ADMIN' && (
+                            <div className="mb-4 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                                <strong>Admin Protection Enabled:</strong> This user has the ADMIN role. To prevent lockouts, their role and login access status cannot be modified.
+                            </div>
+                        )}
                         {error && (
                             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                                 {error}
@@ -490,8 +536,9 @@ const UserManagement: React.FC = () => {
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Role *</label>
                                 <select
                                     value={form.role}
+                                    disabled={isEditMode && selectedUser?.roles?.[0] === 'ADMIN'}
                                     onChange={(e) => onChangeForm('role', e.target.value)}
-                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg"
+                                    className="w-full px-3 py-2.5 border border-gray-300 rounded-lg disabled:bg-gray-100 disabled:text-gray-500"
                                 >
                                     {roleOptions.map((role) => <option key={role.value} value={role.value}>{role.label}</option>)}
                                 </select>
@@ -587,9 +634,11 @@ const UserManagement: React.FC = () => {
                                     id="isActive"
                                     type="checkbox"
                                     checked={form.isActive}
+                                    disabled={isEditMode && selectedUser?.roles?.[0] === 'ADMIN'}
                                     onChange={(e) => onChangeForm('isActive', e.target.checked)}
+                                    className="disabled:opacity-50"
                                 />
-                                <label htmlFor="isActive" className="text-sm text-gray-700">Allow login access</label>
+                                <label htmlFor="isActive" className={`text-sm text-gray-700 ${isEditMode && selectedUser?.roles?.[0] === 'ADMIN' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>Allow login access</label>
                             </div>
 
                             <div className="flex justify-end gap-3 pt-4">

@@ -104,6 +104,8 @@ export const BillList: React.FC = () => {
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(0);
+    const [sortBy, setSortBy] = useState('date');
+    const [sortDir, setSortDir] = useState('DESC');
     const [selectedBill, setSelectedBill] = useState<Bill | null>(null);
     const [billForPayment, setBillForPayment] = useState<Bill | null>(null);
     const [paymentAmount, setPaymentAmount] = useState<string | number>('');
@@ -228,21 +230,21 @@ export const BillList: React.FC = () => {
     };
 
     useEffect(() => {
-        fetchBills(searchQuery, startDate, endDate, 1);
-    }, [searchQuery, startDate, endDate]);
+        fetchBills(searchQuery, startDate, endDate, 1, sortBy, sortDir);
+    }, [searchQuery, startDate, endDate, sortBy, sortDir]);
 
     useEffect(() => {
-        fetchBills(searchQuery, startDate, endDate, currentPage);
+        fetchBills(searchQuery, startDate, endDate, currentPage, sortBy, sortDir);
     }, [currentPage]);
 
-    const fetchBills = async (query: string, start: string, end: string, page: number) => {
+    const fetchBills = async (query: string, start: string, end: string, page: number, sortByValue = sortBy, sortDirValue = sortDir) => {
         setIsLoading(true);
         try {
             const orgId = localStorage.getItem('organizationId');
             if (!orgId) {
                 throw new Error('Organization ID not found');
             }
-            const response: Paginated<Bill> = await searchBills(orgId, start, end, query, page - 1, pageSize);
+            const response: Paginated<Bill> = await searchBills(orgId, start, end, query, page - 1, pageSize, sortByValue, sortDirValue);
             setBills(response.content);
             setTotalPages(response.totalPages);
             setCurrentPage(page);
@@ -401,6 +403,28 @@ export const BillList: React.FC = () => {
                         <button onClick={() => handleDatePreset('7d')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors">7d</button>
                         <button onClick={() => handleDatePreset('1m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors">1m</button>
                         <button onClick={() => handleDatePreset('3m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors">3m</button>
+                    </div>
+
+                    {/* Sort By */}
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500 font-semibold whitespace-nowrap">Sort:</span>
+                        <select
+                            value={`${sortBy}:${sortDir}`}
+                            onChange={(e) => {
+                                const [by, dir] = e.target.value.split(':');
+                                setSortBy(by);
+                                setSortDir(dir);
+                            }}
+                            className="px-2.5 py-1.5 text-xs border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 font-semibold text-gray-600 bg-white cursor-pointer transition-all"
+                        >
+                            <option value="date:DESC">Latest First</option>
+                            <option value="date:ASC">Oldest First</option>
+                            <option value="name:ASC">Name A-Z</option>
+                            <option value="name:DESC">Name Z-A</option>
+                            <option value="amount:DESC">Amount (High to Low)</option>
+                            <option value="amount:ASC">Amount (Low to High)</option>
+                            <option value="status:ASC">Status</option>
+                        </select>
                     </div>
                 </div>
 

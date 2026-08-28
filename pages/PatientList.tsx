@@ -392,6 +392,8 @@ export const PatientList: React.FC = () => {
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
     const [isLoading, setIsLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
+    const [sortBy, setSortBy] = useState('date');
+    const [sortDir, setSortDir] = useState('DESC');
     const [totalPages, setTotalPages] = useState(0);
     const pageSize = 10;
     const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
@@ -1027,14 +1029,14 @@ export const PatientList: React.FC = () => {
         }
     }, [location.state, encounters, navigate, location.pathname]);
 
-    const fetchEncounters = async (query: string, testIds: string[], startDate: string, endDate: string, page: number) => {
+    const fetchEncounters = async (query: string, testIds: string[], startDate: string, endDate: string, page: number, sortByValue = sortBy, sortDirValue = sortDir) => {
         setIsLoading(true);
         try {
             const orgId = localStorage.getItem('organizationId');
             if (!orgId) {
                 throw new Error('Organization ID not found');
             }
-            const response = await searchEncounters(orgId, startDate, endDate, query, testIds, page - 1, pageSize);
+            const response = await searchEncounters(orgId, startDate, endDate, query, testIds, page - 1, pageSize, sortByValue, sortDirValue);
             
             setEncounters(response.content);
             setTotalPages(response.totalPages);
@@ -1057,8 +1059,8 @@ export const PatientList: React.FC = () => {
 
     useEffect(() => {
         // Fetch encounters when filters change
-        fetchEncounters(searchQuery, selectedTests, startDate, endDate, 1);
-    }, [searchQuery, selectedTests, startDate, endDate]);
+        fetchEncounters(searchQuery, selectedTests, startDate, endDate, 1, sortBy, sortDir);
+    }, [searchQuery, selectedTests, startDate, endDate, sortBy, sortDir]);
 
     const handleFilter = () => {
         fetchEncounters(searchQuery, selectedTests, startDate, endDate, 1);
@@ -1268,6 +1270,26 @@ export const PatientList: React.FC = () => {
                         <button onClick={() => handleDatePreset('7d')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">7 days</button>
                         <button onClick={() => handleDatePreset('1m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">1 month</button>
                         <button onClick={() => handleDatePreset('3m')} className="px-2.5 py-1.5 text-xs text-cyan-700 bg-cyan-50 rounded-md hover:bg-cyan-100 hover:text-cyan-800 border border-cyan-200 font-medium transition-colors whitespace-nowrap">3 months</button>
+                    </div>
+
+                    {/* Sort By */}
+                    <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-gray-500 font-semibold whitespace-nowrap">Sort:</span>
+                        <select
+                            value={`${sortBy}:${sortDir}`}
+                            onChange={(e) => {
+                                const [by, dir] = e.target.value.split(':');
+                                setSortBy(by);
+                                setSortDir(dir);
+                            }}
+                            className="px-2.5 py-1.5 text-xs border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 font-semibold text-gray-600 bg-white cursor-pointer transition-all"
+                        >
+                            <option value="date:DESC">Latest First</option>
+                            <option value="date:ASC">Oldest First</option>
+                            <option value="name:ASC">Name A-Z</option>
+                            <option value="name:DESC">Name Z-A</option>
+                            <option value="status:ASC">Status A-Z</option>
+                        </select>
                     </div>
 
                     {/* Total Counter */}

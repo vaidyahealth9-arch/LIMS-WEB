@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, Check, Zap, Users, BarChart3, Shield, Clock, CreditCard, X } from 'lucide-react';
+import { AlertCircle, Check, Zap, Users, BarChart3, Shield, Clock, CreditCard, X, Star } from 'lucide-react';
 import { useAuth } from '../services/AuthContext';
 import { useNotifications } from '../services/NotificationContext';
 import { useSubscription } from '../services/SubscriptionContext';
@@ -56,6 +56,14 @@ declare global {
         Razorpay: any;
     }
 }
+
+const getPeriodText = (planName: string) => {
+    const name = planName.toLowerCase();
+    if (name === 'monthly') return 'month';
+    if (name === 'quarterly') return 'quarter';
+    if (name === 'annual' || name === 'yearly') return 'year';
+    return name;
+};
 
 const Subscription: React.FC = () => {
     const { user } = useAuth();
@@ -360,7 +368,11 @@ const Subscription: React.FC = () => {
                     <div
                         key={plan.id}
                         className={`group relative bg-white rounded-3xl shadow-lg hover:shadow-2xl transition-all duration-500 flex flex-col overflow-hidden border-2 ${
-                            currentSubscription?.planName === plan.planName ? 'border-cyan-500 ring-4 ring-cyan-50' : 'border-transparent'
+                            currentSubscription?.planName === plan.planName 
+                                ? 'border-cyan-500 ring-4 ring-cyan-50' 
+                                : plan.planName.toLowerCase() === 'annual'
+                                    ? 'border-amber-400 shadow-xl'
+                                    : 'border-transparent'
                         }`}
                     >
                         {currentSubscription?.planName === plan.planName && (
@@ -369,15 +381,24 @@ const Subscription: React.FC = () => {
                             </div>
                         )}
 
+                        {plan.planName.toLowerCase() === 'annual' && (
+                            <div className="absolute top-0 left-0 bg-gradient-to-r from-amber-500 to-yellow-400 text-white px-4 py-1 rounded-br-xl text-xs font-bold uppercase tracking-wider z-10 flex items-center gap-1 shadow-sm">
+                                <Star className="w-3.5 h-3.5 fill-white" /> Founding Lab Offer
+                            </div>
+                        )}
+
                         {/* Top Section */}
                         <div className="p-8 bg-gradient-to-br from-gray-50 to-white border-b border-gray-100 flex-1">
-                            <h3 className="text-2xl font-bold text-gray-900 mb-2">{plan.planName}</h3>
+                            <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                                {plan.planName}
+                                {plan.planName.toLowerCase() === 'annual' && ' ⭐'}
+                            </h3>
                             <p className="text-gray-500 text-sm leading-relaxed mb-8 h-10 overflow-hidden">{plan.description}</p>
 
                             <div className="mb-8">
                                 <div className="flex items-baseline gap-1">
                                     <span className="text-5xl font-black text-gray-900 tracking-tight">₹{plan.discountedPrice.toLocaleString()}</span>
-                                    <span className="text-gray-500 font-medium">/{plan.planName.toLowerCase()}</span>
+                                    <span className="text-gray-500 font-medium">/{getPeriodText(plan.planName)}</span>
                                 </div>
                                 <div className="flex items-center gap-3 mt-2">
                                     <span className="text-gray-400 line-through text-lg">₹{plan.price.toLocaleString()}</span>

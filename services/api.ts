@@ -211,6 +211,10 @@ export const addSpecimenType = (data: any): Promise<SpecimenType> => {
     });
 };
 
+export const getAllSpecimenTypes = (): Promise<SpecimenType[]> => {
+    return fetchApi<SpecimenType[]>(`${API_BASE_URL}/specimen-types`);
+};
+
 export const addTestAnalyte = (data: any): Promise<TestAnalyte> => {
     return fetchApi<TestAnalyte>(`${API_BASE_URL}/test-analytes`, {
         method: 'POST',
@@ -275,8 +279,10 @@ export const searchServiceRequests = (
   query: string,
   testIds: string[],
   page: number,
-    size: number,
-    includeClosed: boolean = false
+  size: number,
+  includeClosed: boolean = false,
+  sortBy?: string,
+  sortDir?: string
 ): Promise<Paginated<ServiceRequest>> => {
   const params = new URLSearchParams({
     orgId,
@@ -285,6 +291,12 @@ export const searchServiceRequests = (
     page: page.toString(),
     size: size.toString(),
   });
+  if (sortBy) {
+    params.append('sortBy', sortBy);
+  }
+  if (sortDir) {
+    params.append('sortDir', sortDir);
+  }
     if (includeClosed) {
         params.append('includeClosed', 'true');
     }
@@ -460,8 +472,28 @@ export const registerPatient = (data: any): Promise<PatientRegistrationResponse>
     });
 };
 
-export const exportPatientData = async (): Promise<Blob> => {
-    const response = await fetch(`${API_BASE_URL}/patients/data/export`, {
+export const exportPatientData = async (filters: {
+    startDate?: string;
+    endDate?: string;
+    gender?: string;
+    search?: string;
+} = {}): Promise<Blob> => {
+    const orgId = localStorage.getItem('organizationId') || '';
+    const params = new URLSearchParams({ organizationId: orgId });
+    if (filters.startDate) {
+        params.append('startDate', filters.startDate);
+    }
+    if (filters.endDate) {
+        params.append('endDate', filters.endDate);
+    }
+    if (filters.gender) {
+        params.append('gender', filters.gender);
+    }
+    if (filters.search) {
+        params.append('search', filters.search);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/patients/data/export?${params.toString()}`, {
         method: 'GET',
         headers: getAuthHeaders(),
     });
@@ -510,10 +542,16 @@ export const getPatientsByOrganization = (organizationId: string): Promise<Patie
     return fetchApi<PatientRegistrationResponse[]>(`${API_BASE_URL}/patients/by-organization/${organizationId}`);
 };
 
-export const fetchPhrUser = (mobile: string, relationship?: string): Promise<any> => {
-    const params = new URLSearchParams({ mobile });
+export const fetchPhrUser = (mobile?: string, relationship?: string, accessCode?: string): Promise<any> => {
+    const params = new URLSearchParams();
+    if (mobile) {
+        params.append('mobile', mobile);
+    }
     if (relationship && relationship !== 'none') {
         params.append('relationship', relationship);
+    }
+    if (accessCode) {
+        params.append('accessCode', accessCode);
     }
     return fetchApi<any>(`${API_BASE_URL}/patients/phr-lookup?${params.toString()}`);
 };
@@ -530,8 +568,18 @@ export const searchPatients = (organizationId: string, query: string, page: numb
     return fetchApi<Paginated<PatientRegistrationResponse>>(`${API_BASE_URL}/patients/by-organization/${organizationId}/search?query=${query}&page=${page}&size=${size}`);
 };
 
-export const searchEncounters = (organizationId: string, startDate: string, endDate: string, query: string, tests: string[], page: number, size: number): Promise<Paginated<Encounter>> => {
-    return searchEncountersWithFilters(organizationId, startDate, endDate, query, tests, page, size, {});
+export const searchEncounters = (
+    organizationId: string, 
+    startDate: string, 
+    endDate: string, 
+    query: string, 
+    tests: string[], 
+    page: number, 
+    size: number,
+    sortBy?: string,
+    sortDir?: string
+): Promise<Paginated<Encounter>> => {
+    return searchEncountersWithFilters(organizationId, startDate, endDate, query, tests, page, size, {}, sortBy, sortDir);
 };
 
 export const searchEncountersWithFilters = (
@@ -547,7 +595,9 @@ export const searchEncountersWithFilters = (
         sampleCollector?: string;
         referringDoctor?: string;
         hospital?: string;
-    }
+    },
+    sortBy?: string,
+    sortDir?: string
 ): Promise<Paginated<Encounter>> => {
     const params = new URLSearchParams({
         organizationId,
@@ -557,6 +607,13 @@ export const searchEncountersWithFilters = (
         page: String(page),
         size: String(size),
     });
+
+    if (sortBy) {
+        params.append('sortBy', sortBy);
+    }
+    if (sortDir) {
+        params.append('sortDir', sortDir);
+    }
 
     tests.forEach((testId) => params.append('tests', testId));
 
@@ -934,7 +991,9 @@ export const searchBills = (
     endDate: string,
     query: string,
     page: number,
-    size: number
+    size: number,
+    sortBy?: string,
+    sortDir?: string
 ): Promise<Paginated<Bill>> => {
     const params = new URLSearchParams({
         organizationId,
@@ -943,6 +1002,12 @@ export const searchBills = (
         page: page.toString(),
         size: size.toString(),
     });
+    if (sortBy) {
+        params.append('sortBy', sortBy);
+    }
+    if (sortDir) {
+        params.append('sortDir', sortDir);
+    }
     if (query) {
         params.append('query', query);
     }
